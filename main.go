@@ -20,7 +20,7 @@ func main() {
 	if err := calc.Parse(); err != nil {
 		panic(err)
 	}
-	if calc.Eval().Cmp(big.NewInt(2)) != 0 {
+	if Calculate(calc.Eval()).Cmp(big.NewInt(2)) != 0 {
 		panic("got incorrect result")
 	}
 }
