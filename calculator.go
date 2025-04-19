@@ -54,51 +54,67 @@ var Symbols = [...]Symbol{
 
 // Generate generates an equation
 func Generate(rng *rand.Rand) string {
-	x := rng.Perm(4)
+	x := rng.Perm(3)
 	y := rng.Perm(8)
-	for _, v := range x[:3] {
+	for _, v := range x[:2] {
 		switch v {
 		case 0:
-			return "x"
+			if rng.NormFloat64() > 0 {
+				return "x"
+			}
 		case 1:
 			x := 0
 			for rng.NormFloat64() > 0 {
 				x++
 			}
 			return fmt.Sprintf("%d", x)
-		case 2, 3:
+		case 2:
 			for _, vv := range y[:7] {
 				if Symbols[vv].Type == 0 {
-					return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+					if rng.NormFloat64() > 0 {
+						return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+					}
 				} else if Symbols[vv].Type == 1 {
-					return Symbols[vv].Symbol + Generate(rng)
+					if rng.NormFloat64() > 0 {
+						return Symbols[vv].Symbol + Generate(rng)
+					}
 				} else {
-					return "(" + Generate(rng) + ")"
+					if rng.NormFloat64() > 0 {
+						return "(" + Generate(rng) + ")"
+					}
 				}
 			}
 		}
 	}
 
-	switch x[3] {
+	switch x[2] {
 	case 0:
-		return "x"
+		if rng.NormFloat64() > 0 {
+			return "x"
+		}
 	case 1:
 		x := 0
 		for rng.NormFloat64() > 0 {
 			x++
 		}
 		return fmt.Sprintf("%d", x)
-	case 2, 3:
+	case 2:
 		vv := y[7]
 		if Symbols[vv].Type == 0 {
-			return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+			if rng.NormFloat64() > 0 {
+				return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+			}
 		} else if Symbols[vv].Type == 1 {
-			return Symbols[vv].Symbol + Generate(rng)
+			if rng.NormFloat64() > 0 {
+				return Symbols[vv].Symbol + Generate(rng)
+			}
 		} else {
-			return "(" + Generate(rng) + ")"
+			if rng.NormFloat64() > 0 {
+				return "(" + Generate(rng) + ")"
+			}
 		}
 	}
-	return "<ERROR>"
+	return "0"
 }
 
 // Node is a node in an expression

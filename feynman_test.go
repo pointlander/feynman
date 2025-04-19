@@ -45,7 +45,7 @@ func TestGenerate(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	for i := 0; i < 33; i++ {
 		expression := Generate(rng)
-		t.Log(expression)
+		t.Log(i, expression)
 		calc := &Calculator[uint32]{Buffer: expression}
 		err := calc.Init()
 		if err != nil {
