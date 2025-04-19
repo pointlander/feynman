@@ -48,11 +48,7 @@ func (c *Calculator[U]) Rulee(node *node[U]) *Node {
 	for node != nil {
 		switch node.pegRule {
 		case rulee1:
-			e := &Node{
-				Type: TypeExpression,
-				Left: c.Rulee1(node),
-			}
-			return e
+			return c.Rulee1(node)
 		}
 		node = node.next
 	}
@@ -184,7 +180,11 @@ func (c *Calculator[U]) Rulesub(node *node[U]) *Node {
 	for node != nil {
 		switch node.pegRule {
 		case rulee1:
-			return c.Rulee1(node)
+			e := &Node{
+				Type: TypeExpression,
+				Left: c.Rulee1(node),
+			}
+			return e
 		}
 		node = node.next
 	}
@@ -219,6 +219,38 @@ func Calculate(n *Node) *big.Int {
 		a.Exp(a, Calculate(n.Right), nil)
 	case TypeExpression:
 		a = Calculate(n.Left)
+	}
+	return a
+}
+
+func Str(n *Node) string {
+	var a string
+	switch n.Type {
+	case TypeNumber:
+		a = n.Value.String()
+	case TypeNegation:
+		a = Str(n.Left)
+		a = "-" + a
+	case TypeAdd:
+		a = Str(n.Left)
+		a = a + "+" + Str(n.Right)
+	case TypeSubtract:
+		a = Str(n.Left)
+		a = a + "-" + Str(n.Right)
+	case TypeMultiply:
+		a = Str(n.Left)
+		a = a + "*" + Str(n.Right)
+	case TypeDivide:
+		a = Str(n.Left)
+		a = a + "/" + Str(n.Right)
+	case TypeModulus:
+		a = Str(n.Left)
+		a = a + "%" + Str(n.Right)
+	case TypeExponentiation:
+		a = Str(n.Left)
+		a = a + "^" + Str(n.Right)
+	case TypeExpression:
+		a = "(" + Str(n.Left) + ")"
 	}
 	return a
 }

@@ -7,11 +7,12 @@ package main
 //go:generate peg -switch -inline calculator.peg
 
 import (
+	"fmt"
 	"math/big"
 )
 
 func main() {
-	expression := "( 1 - -3 ) / 3 + 2 * ( 3 + -4 ) + 3 % 2^2"
+	expression := "(1--3)/3+2*(3+-4)+3%2^2"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -23,4 +24,9 @@ func main() {
 	if Calculate(calc.Eval()).Cmp(big.NewInt(2)) != 0 {
 		panic("got incorrect result")
 	}
+	parsed := Str(calc.Eval())
+	if parsed != expression {
+		panic("strings don't match")
+	}
+	fmt.Println(parsed)
 }
