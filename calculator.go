@@ -39,7 +39,7 @@ type Node struct {
 	Value *big.Int
 }
 
-func (c *Calculator[_]) Eval() *Node {
+func (c *Calculator[_]) Tree() *Node {
 	return c.Rulee(c.AST())
 }
 
@@ -191,66 +191,66 @@ func (c *Calculator[U]) Rulesub(node *node[U]) *Node {
 	return nil
 }
 
-func Calculate(n *Node) *big.Int {
+func (n *Node) Calculate() *big.Int {
 	var a *big.Int
 	switch n.Type {
 	case TypeNumber:
 		a = n.Value
 	case TypeNegation:
-		a = Calculate(n.Left)
+		a = n.Left.Calculate()
 		a = a.Neg(a)
 	case TypeAdd:
-		a = Calculate(n.Left)
-		a.Add(a, Calculate(n.Right))
+		a = n.Left.Calculate()
+		a.Add(a, n.Right.Calculate())
 	case TypeSubtract:
-		a = Calculate(n.Left)
-		a.Sub(a, Calculate(n.Right))
+		a = n.Left.Calculate()
+		a.Sub(a, n.Right.Calculate())
 	case TypeMultiply:
-		a = Calculate(n.Left)
-		a.Mul(a, Calculate(n.Right))
+		a = n.Left.Calculate()
+		a.Mul(a, n.Right.Calculate())
 	case TypeDivide:
-		a = Calculate(n.Left)
-		a.Div(a, Calculate(n.Right))
+		a = n.Left.Calculate()
+		a.Div(a, n.Right.Calculate())
 	case TypeModulus:
-		a = Calculate(n.Left)
-		a.Mod(a, Calculate(n.Right))
+		a = n.Left.Calculate()
+		a.Mod(a, n.Right.Calculate())
 	case TypeExponentiation:
-		a = Calculate(n.Left)
-		a.Exp(a, Calculate(n.Right), nil)
+		a = n.Left.Calculate()
+		a.Exp(a, n.Right.Calculate(), nil)
 	case TypeExpression:
-		a = Calculate(n.Left)
+		a = n.Left.Calculate()
 	}
 	return a
 }
 
-func Str(n *Node) string {
+func (n *Node) String() string {
 	var a string
 	switch n.Type {
 	case TypeNumber:
 		a = n.Value.String()
 	case TypeNegation:
-		a = Str(n.Left)
+		a = n.Left.String()
 		a = "-" + a
 	case TypeAdd:
-		a = Str(n.Left)
-		a = a + "+" + Str(n.Right)
+		a = n.Left.String()
+		a = a + "+" + n.Right.String()
 	case TypeSubtract:
-		a = Str(n.Left)
-		a = a + "-" + Str(n.Right)
+		a = n.Left.String()
+		a = a + "-" + n.Right.String()
 	case TypeMultiply:
-		a = Str(n.Left)
-		a = a + "*" + Str(n.Right)
+		a = n.Left.String()
+		a = a + "*" + n.Right.String()
 	case TypeDivide:
-		a = Str(n.Left)
-		a = a + "/" + Str(n.Right)
+		a = n.Left.String()
+		a = a + "/" + n.Right.String()
 	case TypeModulus:
-		a = Str(n.Left)
-		a = a + "%" + Str(n.Right)
+		a = n.Left.String()
+		a = a + "%" + n.Right.String()
 	case TypeExponentiation:
-		a = Str(n.Left)
-		a = a + "^" + Str(n.Right)
+		a = n.Left.String()
+		a = a + "^" + n.Right.String()
 	case TypeExpression:
-		a = "(" + Str(n.Left) + ")"
+		a = "(" + n.Left.String() + ")"
 	}
 	return a
 }
