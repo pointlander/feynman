@@ -5,18 +5,16 @@
 package main
 
 import (
+	"fmt"
 	"math/big"
+	"math/rand"
 )
 
 type Type uint8
 
 const (
-	// TypeNumber is a number
-	TypeNumber Type = iota
-	// TypeNegation negates a number
-	TypeNegation
 	// TypeAdd adds number together
-	TypeAdd
+	TypeAdd Type = iota
 	// TypeSubtract subtracts one number from another
 	TypeSubtract
 	// TypeMultiply multiplies two numbers
@@ -27,16 +25,90 @@ const (
 	TypeModulus
 	// TypeExponentiation raises a number to a power
 	TypeExponentiation
+	// TypeNegation negates a number
+	TypeNegation
 	// TypeExpression is an expression
 	TypeExpression
+	// TypeNumber is a number
+	TypeNumber
+	// TypeVariable is a variable
+	TypeVariable
 )
+
+// Symbol is a symbol
+type Symbol struct {
+	Symbol string
+	Type   int
+}
+
+var Symbols = [...]Symbol{
+	{"+", 0},
+	{"-", 0},
+	{"*", 0},
+	{"/", 0},
+	{"%", 0},
+	{"^", 0},
+	{"-", 1},
+	{"()", 2},
+}
+
+// Generate generates an equation
+func Generate(rng *rand.Rand) string {
+	x := rng.Perm(4)
+	y := rng.Perm(8)
+	for _, v := range x[:3] {
+		switch v {
+		case 0:
+			return "x"
+		case 1:
+			x := 0
+			for rng.NormFloat64() > 0 {
+				x++
+			}
+			return fmt.Sprintf("%d", x)
+		case 2, 3:
+			for _, vv := range y[:7] {
+				if Symbols[vv].Type == 0 {
+					return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+				} else if Symbols[vv].Type == 1 {
+					return Symbols[vv].Symbol + Generate(rng)
+				} else {
+					return "(" + Generate(rng) + ")"
+				}
+			}
+		}
+	}
+
+	switch x[3] {
+	case 0:
+		return "x"
+	case 1:
+		x := 0
+		for rng.NormFloat64() > 0 {
+			x++
+		}
+		return fmt.Sprintf("%d", x)
+	case 2, 3:
+		vv := y[7]
+		if Symbols[vv].Type == 0 {
+			return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+		} else if Symbols[vv].Type == 1 {
+			return Symbols[vv].Symbol + Generate(rng)
+		} else {
+			return "(" + Generate(rng) + ")"
+		}
+	}
+	return "<ERROR>"
+}
 
 // Node is a node in an expression
 type Node struct {
-	Type  Type
-	Left  *Node
-	Right *Node
-	Value *big.Int
+	Type     Type
+	Left     *Node
+	Right    *Node
+	Value    *big.Int
+	Variable string
+	Count    int
 }
 
 func (c *Calculator[_]) Tree() *Node {
@@ -138,19 +210,20 @@ func (c *Calculator[U]) Rulee3(node *node[U]) *Node {
 
 func (c *Calculator[U]) Rulee4(node *node[U]) *Node {
 	node = node.up
-	minus := false
+	minus := 0
 	for node != nil {
 		switch node.pegRule {
 		case rulevalue:
-			if minus {
+			if minus > 0 {
 				e := &Node{}
 				e.Type = TypeNegation
+				e.Count = minus
 				e.Left = c.Rulevalue(node)
 				return e
 			}
 			return c.Rulevalue(node)
 		case ruleminus:
-			minus = true
+			minus++
 		}
 		node = node.next
 	}
@@ -166,6 +239,11 @@ func (c *Calculator[U]) Rulevalue(node *node[U]) *Node {
 			a.Type = TypeNumber
 			a.Value = big.NewInt(0)
 			a.Value.SetString(string(c.buffer[node.begin:node.end]), 10)
+			return a
+		case rulevariable:
+			a := &Node{}
+			a.Type = TypeVariable
+			a.Variable = string(c.buffer[node.begin:node.end])
 			return a
 		case rulesub:
 			return c.Rulesub(node)
@@ -228,9 +306,15 @@ func (n *Node) String() string {
 	switch n.Type {
 	case TypeNumber:
 		a = n.Value.String()
+	case TypeVariable:
+		a = n.Variable
 	case TypeNegation:
 		a = n.Left.String()
-		a = "-" + a
+		minus := ""
+		for range n.Count {
+			minus += "-"
+		}
+		a = minus + a
 	case TypeAdd:
 		a = n.Left.String()
 		a = a + "+" + n.Right.String()

@@ -17,11 +17,13 @@ e2 <- e3 ( multiply e3
          )*
 e3 <- e4 ( exponentiation e4
          )*
-e4 <- minus value
+e4 <- minus+ value
     / value
 value <- number
+       / variable
        / sub
-number <- < [0-9]+ > sp
+number <-[0-9]+ sp
+variable <- [a-z]+
 sub <- open e1 close
 add <- '+' sp
 minus <- '-' sp
