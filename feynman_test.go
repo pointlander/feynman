@@ -20,7 +20,7 @@ func TestCalculate(t *testing.T) {
 	if err := calc.Parse(); err != nil {
 		t.Fatal(err)
 	}
-	if calc.Tree().Calculate().Cmp(big.NewInt(2)) != 0 {
+	if calc.Tree().Calculate(big.NewInt(1)).Cmp(big.NewInt(2)) != 0 {
 		t.Fatal("got incorrect result")
 	}
 }
@@ -59,6 +59,42 @@ func TestGenerate(t *testing.T) {
 			t.Log(parsed)
 			t.Log(expression)
 			t.Fatal("strings don't match")
+		}
+	}
+}
+
+func TestRandomSearch(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	expression := "x^2"
+	calc := &Calculator[uint32]{Buffer: expression}
+	err := calc.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := calc.Parse(); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 1024; i++ {
+		query := Generate(rng)
+		y := &Calculator[uint32]{Buffer: query}
+		err := y.Init()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := y.Parse(); err != nil {
+			t.Fatal(err)
+		}
+
+		fitness := big.NewInt(0)
+		for j := 0; j < 2048; j++ {
+			z := int64(rng.Intn(1024*1024) + 1)
+			diff := big.NewInt(0).Sub(calc.Tree().Calculate(big.NewInt(z)), y.Tree().Calculate(big.NewInt(z)))
+			diff = diff.Abs(diff)
+			fitness = fitness.Add(fitness, diff)
+		}
+		if fitness.Cmp(big.NewInt(0)) == 0 {
+			t.Log("result", query)
+			break
 		}
 	}
 }

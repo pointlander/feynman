@@ -63,7 +63,7 @@ func Generate(rng *rand.Rand) string {
 				return "x"
 			}
 		case 1:
-			x := 0
+			x := 1
 			for rng.NormFloat64() > 0 {
 				x++
 			}
@@ -93,7 +93,7 @@ func Generate(rng *rand.Rand) string {
 			return "x"
 		}
 	case 1:
-		x := 0
+		x := 1
 		for rng.NormFloat64() > 0 {
 			x++
 		}
@@ -114,7 +114,7 @@ func Generate(rng *rand.Rand) string {
 			}
 		}
 	}
-	return "0"
+	return "1"
 }
 
 // Node is a node in an expression
@@ -285,34 +285,37 @@ func (c *Calculator[U]) Rulesub(node *node[U]) *Node {
 	return nil
 }
 
-func (n *Node) Calculate() *big.Int {
+func (n *Node) Calculate(x *big.Int) *big.Int {
 	var a *big.Int
 	switch n.Type {
 	case TypeNumber:
 		a = n.Value
+	case TypeVariable:
+		a = big.NewInt(0)
+		a = a.Set(x)
 	case TypeNegation:
-		a = n.Left.Calculate()
+		a = n.Left.Calculate(x)
 		a = a.Neg(a)
 	case TypeAdd:
-		a = n.Left.Calculate()
-		a.Add(a, n.Right.Calculate())
+		a = n.Left.Calculate(x)
+		a.Add(a, n.Right.Calculate(x))
 	case TypeSubtract:
-		a = n.Left.Calculate()
-		a.Sub(a, n.Right.Calculate())
+		a = n.Left.Calculate(x)
+		a.Sub(a, n.Right.Calculate(x))
 	case TypeMultiply:
-		a = n.Left.Calculate()
-		a.Mul(a, n.Right.Calculate())
+		a = n.Left.Calculate(x)
+		a.Mul(a, n.Right.Calculate(x))
 	case TypeDivide:
-		a = n.Left.Calculate()
-		a.Div(a, n.Right.Calculate())
+		a = n.Left.Calculate(x)
+		a.Div(a, n.Right.Calculate(x))
 	case TypeModulus:
-		a = n.Left.Calculate()
-		a.Mod(a, n.Right.Calculate())
+		a = n.Left.Calculate(x)
+		a.Mod(a, n.Right.Calculate(x))
 	case TypeExponentiation:
-		a = n.Left.Calculate()
-		a.Exp(a, n.Right.Calculate(), nil)
+		a = n.Left.Calculate(x)
+		a.Exp(a, n.Right.Calculate(x), nil)
 	case TypeExpression:
-		a = n.Left.Calculate()
+		a = n.Left.Calculate(x)
 	}
 	return a
 }
