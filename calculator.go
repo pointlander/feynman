@@ -52,35 +52,75 @@ var Symbols = [...]Symbol{
 	{"()", 2},
 }
 
+// Sample is a sample
+type Sample struct {
+	Value []float64
+	Valid bool
+}
+
+// Samples is a set of samples
+type Samples struct {
+	Samples [][10]Sample
+}
+
+// Gaussian is a gaussian
+type Gaussian struct {
+	Mean   float64
+	Stddev float64
+}
+
+// NewGaussian makes a new gaussian distribution
+func NewGaussian() (g [10]Gaussian) {
+	for i := range g {
+		g[i].Stddev = 1
+	}
+	return g
+}
+
 // Generate generates an equation
-func Generate(rng *rand.Rand) string {
+func (s *Samples) Generate(g [10]Gaussian, rng *rand.Rand) string {
 	x := rng.Perm(3)
 	y := rng.Perm(8)
+	samples := [10]Sample{}
+	defer func() {
+		s.Samples = append(s.Samples, samples)
+	}()
 	for _, v := range x[:2] {
 		switch v {
 		case 0:
-			if rng.NormFloat64() > 0 {
+			sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
+			samples[0].Value = append(samples[0].Value, sample)
+			if sample > 0 {
 				return "x"
 			}
 		case 1:
 			x := 1
-			for rng.NormFloat64() > 0 {
+			sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
+			for sample > 0 {
 				x++
+				samples[1].Value = append(samples[1].Value, sample)
+				sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
 			}
 			return fmt.Sprintf("%d", x)
 		case 2:
-			for _, vv := range y[:7] {
+			for i, vv := range y[:7] {
 				if Symbols[vv].Type == 0 {
-					if rng.NormFloat64() > 0 {
-						return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
+					samples[2+i].Value = append(samples[2+i].Value, sample)
+					if sample > 0 {
+						return s.Generate(g, rng) + Symbols[vv].Symbol + s.Generate(g, rng)
 					}
 				} else if Symbols[vv].Type == 1 {
-					if rng.NormFloat64() > 0 {
-						return Symbols[vv].Symbol + Generate(rng)
+					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
+					samples[2+i].Value = append(samples[2+i].Value, sample)
+					if sample > 0 {
+						return Symbols[vv].Symbol + s.Generate(g, rng)
 					}
 				} else {
-					if rng.NormFloat64() > 0 {
-						return "(" + Generate(rng) + ")"
+					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
+					samples[2+i].Value = append(samples[2+i].Value, sample)
+					if sample > 0 {
+						return "(" + s.Generate(g, rng) + ")"
 					}
 				}
 			}
@@ -89,28 +129,39 @@ func Generate(rng *rand.Rand) string {
 
 	switch x[2] {
 	case 0:
-		if rng.NormFloat64() > 0 {
+		sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
+		samples[0].Value = append(samples[0].Value, sample)
+		if sample > 0 {
 			return "x"
 		}
 	case 1:
 		x := 1
-		for rng.NormFloat64() > 0 {
+		sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
+		for sample > 0 {
 			x++
+			samples[1].Value = append(samples[1].Value, sample)
+			sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
 		}
 		return fmt.Sprintf("%d", x)
 	case 2:
 		vv := y[7]
 		if Symbols[vv].Type == 0 {
-			if rng.NormFloat64() > 0 {
-				return Generate(rng) + Symbols[vv].Symbol + Generate(rng)
+			sample := rng.NormFloat64()*g[2+7].Stddev + g[2+7].Mean
+			samples[2+7].Value = append(samples[2+7].Value, sample)
+			if sample > 0 {
+				return s.Generate(g, rng) + Symbols[vv].Symbol + s.Generate(g, rng)
 			}
 		} else if Symbols[vv].Type == 1 {
-			if rng.NormFloat64() > 0 {
-				return Symbols[vv].Symbol + Generate(rng)
+			sample := rng.NormFloat64()*g[2+7].Stddev + g[2+7].Mean
+			samples[2+7].Value = append(samples[2+7].Value, sample)
+			if sample > 0 {
+				return Symbols[vv].Symbol + s.Generate(g, rng)
 			}
 		} else {
-			if rng.NormFloat64() > 0 {
-				return "(" + Generate(rng) + ")"
+			sample := rng.NormFloat64()*g[2+7].Stddev + g[2+7].Mean
+			samples[2+7].Value = append(samples[2+7].Value, sample)
+			if sample > 0 {
+				return "(" + s.Generate(g, rng) + ")"
 			}
 		}
 	}

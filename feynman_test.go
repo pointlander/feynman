@@ -43,8 +43,10 @@ func TestString(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
+	g := NewGaussian()
+	s := Samples{}
 	for i := 0; i < 33; i++ {
-		expression := Generate(rng)
+		expression := s.Generate(g, rng)
 		t.Log(i, expression)
 		calc := &Calculator[uint32]{Buffer: expression}
 		err := calc.Init()
@@ -65,6 +67,7 @@ func TestGenerate(t *testing.T) {
 
 func TestRandomSearch(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
+	g := NewGaussian()
 	expression := "x^2"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
@@ -75,8 +78,9 @@ func TestRandomSearch(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := calc.Tree()
+	s := Samples{}
 	for i := 0; i < 1024; i++ {
-		query := Generate(rng)
+		query := s.Generate(g, rng)
 		y := &Calculator[uint32]{Buffer: query}
 		err := y.Init()
 		if err != nil {
