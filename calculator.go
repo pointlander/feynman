@@ -289,7 +289,8 @@ func (n *Node) Calculate(x *big.Int) *big.Int {
 	var a *big.Int
 	switch n.Type {
 	case TypeNumber:
-		a = n.Value
+		a = big.NewInt(0)
+		a = a.Set(n.Value)
 	case TypeVariable:
 		a = big.NewInt(0)
 		a = a.Set(x)

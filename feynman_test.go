@@ -74,6 +74,7 @@ func TestRandomSearch(t *testing.T) {
 	if err := calc.Parse(); err != nil {
 		t.Fatal(err)
 	}
+	a := calc.Tree()
 	for i := 0; i < 1024; i++ {
 		query := Generate(rng)
 		y := &Calculator[uint32]{Buffer: query}
@@ -84,11 +85,12 @@ func TestRandomSearch(t *testing.T) {
 		if err := y.Parse(); err != nil {
 			t.Fatal(err)
 		}
+		b := y.Tree()
 
 		fitness := big.NewInt(0)
 		for j := 0; j < 2048; j++ {
 			z := int64(rng.Intn(1024*1024) + 1)
-			diff := big.NewInt(0).Sub(calc.Tree().Calculate(big.NewInt(z)), y.Tree().Calculate(big.NewInt(z)))
+			diff := big.NewInt(0).Sub(a.Calculate(big.NewInt(z)), b.Calculate(big.NewInt(z)))
 			diff = diff.Abs(diff)
 			fitness = fitness.Add(fitness, diff)
 		}
