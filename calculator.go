@@ -146,20 +146,20 @@ func (s *Samples) Generate(g [10]Gaussian, rng *rand.Rand) string {
 	case 2:
 		vv := y[7]
 		if Symbols[vv].Type == 0 {
-			sample := rng.NormFloat64()*g[2+7].Stddev + g[2+7].Mean
-			samples[2+7].Value = append(samples[2+7].Value, sample)
+			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
+			samples[2+vv].Value = append(samples[2+vv].Value, sample)
 			if sample > 0 {
 				return s.Generate(g, rng) + Symbols[vv].Symbol + s.Generate(g, rng)
 			}
 		} else if Symbols[vv].Type == 1 {
-			sample := rng.NormFloat64()*g[2+7].Stddev + g[2+7].Mean
-			samples[2+7].Value = append(samples[2+7].Value, sample)
+			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
+			samples[2+vv].Value = append(samples[2+vv].Value, sample)
 			if sample > 0 {
 				return Symbols[vv].Symbol + s.Generate(g, rng)
 			}
 		} else {
-			sample := rng.NormFloat64()*g[2+7].Stddev + g[2+7].Mean
-			samples[2+7].Value = append(samples[2+7].Value, sample)
+			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
+			samples[2+7].Value = append(samples[2+vv].Value, sample)
 			if sample > 0 {
 				return "(" + s.Generate(g, rng) + ")"
 			}

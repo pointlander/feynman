@@ -95,7 +95,7 @@ func TestRandomSearch(t *testing.T) {
 		for j := 0; j < 2048; j++ {
 			z := int64(rng.Intn(1024*1024) + 1)
 			diff := big.NewInt(0).Sub(a.Calculate(big.NewInt(z)), b.Calculate(big.NewInt(z)))
-			diff = diff.Abs(diff)
+			diff = diff.Mul(diff, diff)
 			fitness = fitness.Add(fitness, diff)
 		}
 		if fitness.Cmp(big.NewInt(0)) == 0 {
