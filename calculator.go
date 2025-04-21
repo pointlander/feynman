@@ -10,6 +10,12 @@ import (
 	"math/rand"
 )
 
+const (
+	// Width is the number of random variables
+	Width = 10
+)
+
+// Type is a type of symbol
 type Type uint8
 
 const (
@@ -55,12 +61,11 @@ var Symbols = [...]Symbol{
 // Sample is a sample
 type Sample struct {
 	Value []float64
-	Valid bool
 }
 
 // Samples is a set of samples
 type Samples struct {
-	Samples [][10]Sample
+	Samples [][Width]Sample
 }
 
 // Gaussian is a gaussian
@@ -70,7 +75,7 @@ type Gaussian struct {
 }
 
 // NewGaussian makes a new gaussian distribution
-func NewGaussian() (g [10]Gaussian) {
+func NewGaussian() (g [Width]Gaussian) {
 	for i := range g {
 		g[i].Stddev = 1
 	}
@@ -78,10 +83,10 @@ func NewGaussian() (g [10]Gaussian) {
 }
 
 // Generate generates an equation
-func (s *Samples) Generate(g [10]Gaussian, rng *rand.Rand) string {
+func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 	x := rng.Perm(3)
 	y := rng.Perm(8)
-	samples := [10]Sample{}
+	samples := [Width]Sample{}
 	defer func() {
 		s.Samples = append(s.Samples, samples)
 	}()
