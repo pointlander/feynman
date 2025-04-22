@@ -71,7 +71,7 @@ func TestGenerate(t *testing.T) {
 func TestRandomSearch(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	g := NewGaussian()
-	expression := "x^2"
+	expression := "2*x"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -96,7 +96,7 @@ outer:
 			if err := y.Parse(); err != nil {
 				t.Fatal(err)
 			}
-			b := y.Tree()
+			b := y.Tree().Derivative()
 
 			fitness := big.NewInt(0)
 			fit := func() {
@@ -114,6 +114,7 @@ outer:
 			s.Samples[len(s.Samples)-1].Fitness = fitness
 			if fitness.Cmp(big.NewInt(0)) == 0 {
 				t.Log("result", query)
+				t.Log("dresult", b.String())
 				break outer
 			}
 		}
