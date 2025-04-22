@@ -5,6 +5,7 @@
 package main
 
 import (
+	"math"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -78,29 +79,58 @@ func TestRandomSearch(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := calc.Tree()
-	s := Samples{}
+outer:
 	for i := 0; i < 1024; i++ {
-		query := s.Generate(g, rng)
-		y := &Calculator[uint32]{Buffer: query}
-		err := y.Init()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := y.Parse(); err != nil {
-			t.Fatal(err)
-		}
-		b := y.Tree()
+		s := Samples{}
+		for k := 0; k < 33; k++ {
+			query := s.Generate(g, rng)
+			t.Log(query)
+			y := &Calculator[uint32]{Buffer: query}
+			err := y.Init()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := y.Parse(); err != nil {
+				t.Fatal(err)
+			}
+			b := y.Tree()
 
-		fitness := big.NewInt(0)
-		for j := 0; j < 2048; j++ {
-			z := int64(rng.Intn(1024*1024) + 1)
-			diff := big.NewInt(0).Sub(a.Calculate(big.NewInt(z)), b.Calculate(big.NewInt(z)))
-			diff = diff.Mul(diff, diff)
-			fitness = fitness.Add(fitness, diff)
+			fitness := big.NewInt(0)
+			for j := 0; j < 256; j++ {
+				z := int64(rng.Intn(1024) + 1)
+				diff := big.NewInt(0).Sub(a.Calculate(big.NewInt(z)), b.Calculate(big.NewInt(z)))
+				diff = diff.Mul(diff, diff)
+				fitness = fitness.Add(fitness, diff)
+			}
+			t.Log(fitness)
+			if fitness.Cmp(big.NewInt(0)) == 0 {
+				t.Log("result", query)
+				break outer
+			}
 		}
-		if fitness.Cmp(big.NewInt(0)) == 0 {
-			t.Log("result", query)
-			break
+		for k := 0; k < Width; k++ {
+			sum, count := 0.0, 0.0
+			for _, v := range s.Samples {
+				for _, vv := range v[k].Value {
+					count++
+					sum += vv
+				}
+			}
+			if count == 0 {
+				continue
+			}
+			avg := sum / count
+			stddev := 0.0
+			for _, v := range s.Samples {
+				for _, vv := range v[k].Value {
+					diff := avg - vv
+					stddev += diff * diff
+				}
+			}
+			stddev = math.Sqrt(stddev / count)
+			g[k].Mean = avg
+			g[k].Stddev = stddev
 		}
+		t.Log(g)
 	}
 }
