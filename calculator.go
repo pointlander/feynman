@@ -12,7 +12,7 @@ import (
 
 const (
 	// Width is the number of random variables
-	Width = 10
+	Width = 9
 )
 
 // Operation is a mathematical operation
@@ -33,8 +33,6 @@ const (
 	OperationExponentiation
 	// OperationNegate changes the sign of a number
 	OperationNegate
-	// OperationExpression is an expression
-	OperationExpression
 	// OperationNumber is a real number
 	OperationNumber
 	// OperationVariable is a variable
@@ -189,7 +187,7 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 			}
 		} else {
 			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+7].Value = append(samples.Set[2+vv].Value, sample)
+			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
 			if sample > 0 {
 				return "(" + s.Generate(g, rng) + ")"
 			}
@@ -355,11 +353,7 @@ func (c *Calculator[U]) Rulesub(node *node[U]) *Node {
 	for node != nil {
 		switch node.pegRule {
 		case rulee1:
-			e := &Node{
-				Operation: OperationExpression,
-				Left:      c.Rulee1(node),
-			}
-			return e
+			return c.Rulee1(node)
 		}
 		node = node.next
 	}
@@ -446,12 +440,9 @@ func (n *Node) Derivative() *Node {
 				Value:     big.NewInt(1),
 			}
 			subtract := &Node{
-				Operation: OperationExpression,
-				Left: &Node{
-					Operation: OperationSubtract,
-					Left:      n.Right,
-					Right:     one,
-				},
+				Operation: OperationSubtract,
+				Left:      n.Right,
+				Right:     one,
 			}
 			exp := &Node{
 				Operation: OperationExponentiation,
@@ -628,46 +619,63 @@ func (n *Node) Calculate(x *big.Int) *big.Int {
 	case OperationExponentiation:
 		a = n.Left.Calculate(x)
 		a.Exp(a, n.Right.Calculate(x), nil)
-	case OperationExpression:
-		a = n.Left.Calculate(x)
 	}
 	return a
 }
 
+// String returns the string form of the equation
 func (n *Node) String() string {
-	var a string
-	switch n.Operation {
-	case OperationNumber:
-		a = n.Value.String()
-	case OperationVariable:
-		a = n.Variable
-	case OperationNegate:
-		a = n.Left.String()
-		minus := ""
-		for range n.Count {
-			minus += "-"
+	var process func(n *Node) string
+	process = func(n *Node) string {
+		if n == nil {
+			return ""
 		}
-		a = minus + a
-	case OperationAdd:
-		a = n.Left.String()
-		a = a + "+" + n.Right.String()
-	case OperationSubtract:
-		a = n.Left.String()
-		a = a + "-" + n.Right.String()
-	case OperationMultiply:
-		a = n.Left.String()
-		a = a + "*" + n.Right.String()
-	case OperationDivide:
-		a = n.Left.String()
-		a = a + "/" + n.Right.String()
-	case OperationModulus:
-		a = n.Left.String()
-		a = a + "%" + n.Right.String()
-	case OperationExponentiation:
-		a = n.Left.String()
-		a = a + "^" + n.Right.String()
-	case OperationExpression:
-		a = "(" + n.Left.String() + ")"
+		switch n.Operation {
+		case OperationNoop:
+			return "(" + process(n.Left) + "???" + process(n.Right) + ")"
+		case OperationAdd:
+			return "(" + process(n.Left) + " + " + process(n.Right) + ")"
+		case OperationSubtract:
+			return "(" + process(n.Left) + " - " + process(n.Right) + ")"
+		case OperationMultiply:
+			return "(" + process(n.Left) + " * " + process(n.Right) + ")"
+		case OperationDivide:
+			return "(" + process(n.Left) + " / " + process(n.Right) + ")"
+		case OperationModulus:
+			return "(" + process(n.Left) + " % " + process(n.Right) + ")"
+		case OperationExponentiation:
+			return "(" + process(n.Left) + "^" + process(n.Right) + ")"
+		case OperationNegate:
+			return "-(" + process(n.Left) + ")"
+		case OperationVariable:
+			return n.Variable
+		case OperationImaginary:
+			return n.Value.String() + "i"
+		case OperationNumber:
+			return n.Value.String()
+		case OperationNotation:
+			if n.Left.Operation == OperationImaginary {
+				return n.Left.Value.String() + "e" + process(n.Right) + "i"
+			}
+			return process(n.Left) + "e" + process(n.Right)
+		case OperationNaturalExponentiation:
+			return "(e^" + process(n.Left) + ")"
+		case OperationNatural:
+			return "e"
+		case OperationPI:
+			return "pi"
+		case OperationNaturalLogarithm:
+			return "log(" + process(n.Left) + ")"
+		case OperationSquareRoot:
+			return "sqrt(" + process(n.Left) + ")"
+		case OperationCosine:
+			return "cos(" + process(n.Left) + ")"
+		case OperationSine:
+			return "sin(" + process(n.Left) + ")"
+		case OperationTangent:
+			return "tan(" + process(n.Left) + ")"
+		}
+		return ""
 	}
-	return a
+	return process(n)
 }
