@@ -12,7 +12,7 @@ import (
 
 const (
 	// Width is the number of random variables
-	Width = 9
+	Width = 10
 )
 
 // Operation is a mathematical operation
