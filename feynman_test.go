@@ -146,3 +146,18 @@ outer:
 		t.Log(g)
 	}
 }
+
+func TestDerivative(t *testing.T) {
+	expression := "x^2"
+	calc := &Calculator[uint32]{Buffer: expression}
+	err := calc.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := calc.Parse(); err != nil {
+		t.Fatal(err)
+	}
+	a := calc.Tree()
+	da := a.Derivative()
+	t.Log(da.String())
+}

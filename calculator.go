@@ -15,30 +15,52 @@ const (
 	Width = 10
 )
 
-// Type is a type of symbol
-type Type uint8
+// Operation is a mathematical operation
+type Operation uint
 
 const (
-	// TypeAdd adds number together
-	TypeAdd Type = iota
-	// TypeSubtract subtracts one number from another
-	TypeSubtract
-	// TypeMultiply multiplies two numbers
-	TypeMultiply
-	// TypeDivide divides two numbers
-	TypeDivide
-	// TypeModules computes the modulus
-	TypeModulus
-	// TypeExponentiation raises a number to a power
-	TypeExponentiation
-	// TypeNegation negates a number
-	TypeNegation
-	// TypeExpression is an expression
-	TypeExpression
-	// TypeNumber is a number
-	TypeNumber
-	// TypeVariable is a variable
-	TypeVariable
+	// OperationAdd adds two numbers
+	OperationAdd Operation = iota
+	// OperationSubtract subtracts two numbers
+	OperationSubtract
+	// OperationMultiply multiplies two numbers
+	OperationMultiply
+	// OperationDivide divides two numbers
+	OperationDivide
+	// OperationModulus computes the modulus of two numbers
+	OperationModulus
+	// OperationExponentiation raises a number to a number
+	OperationExponentiation
+	// OperationNegate changes the sign of a number
+	OperationNegate
+	// OperationExpression is an expression
+	OperationExpression
+	// OperationNumber is a real number
+	OperationNumber
+	// OperationVariable is a variable
+	OperationVariable
+	// OperationImaginary is an imaginary number
+	OperationImaginary
+	// OperationNaturalExponentiation raises the natural number to a power
+	OperationNaturalExponentiation
+	// OperationNatural is the constant e
+	OperationNatural
+	// OperationPI is the constant pi
+	OperationPI
+	// OperationNaturalLogarithm os the natural logarithm
+	OperationNaturalLogarithm
+	// OperationSquareRoot computes the square root of a number
+	OperationSquareRoot
+	// OperationCosine computes the cosine of a number
+	OperationCosine
+	// OperationSine computes the sine of a number
+	OperationSine
+	// OperationTangent computes the tangent of a number
+	OperationTangent
+	// OperationNotation is E notation operation
+	OperationNotation
+	// OperationNoop is a noop
+	OperationNoop
 )
 
 // Symbol is a symbol
@@ -178,12 +200,12 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 
 // Node is a node in an expression
 type Node struct {
-	Type     Type
-	Left     *Node
-	Right    *Node
-	Value    *big.Int
-	Variable string
-	Count    int
+	Operation Operation
+	Value     *big.Int
+	Variable  string
+	Left      *Node
+	Right     *Node
+	Count     int
 }
 
 func (c *Calculator[_]) Tree() *Node {
@@ -212,14 +234,14 @@ func (c *Calculator[U]) Rulee1(node *node[U]) *Node {
 		case ruleadd:
 			node = node.next
 			b := &Node{}
-			b.Type = TypeAdd
+			b.Operation = OperationAdd
 			b.Left = a
 			b.Right = c.Rulee2(node)
 			a = b
 		case ruleminus:
 			node = node.next
 			b := &Node{}
-			b.Type = TypeSubtract
+			b.Operation = OperationSubtract
 			b.Left = a
 			b.Right = c.Rulee2(node)
 			a = b
@@ -239,21 +261,21 @@ func (c *Calculator[U]) Rulee2(node *node[U]) *Node {
 		case rulemultiply:
 			node = node.next
 			b := &Node{}
-			b.Type = TypeMultiply
+			b.Operation = OperationMultiply
 			b.Left = a
 			b.Right = c.Rulee3(node)
 			a = b
 		case ruledivide:
 			node = node.next
 			b := &Node{}
-			b.Type = TypeDivide
+			b.Operation = OperationDivide
 			b.Left = a
 			b.Right = c.Rulee3(node)
 			a = b
 		case rulemodulus:
 			node = node.next
 			b := &Node{}
-			b.Type = TypeModulus
+			b.Operation = OperationModulus
 			b.Left = a
 			b.Right = c.Rulee3(node)
 			a = b
@@ -273,7 +295,7 @@ func (c *Calculator[U]) Rulee3(node *node[U]) *Node {
 		case ruleexponentiation:
 			node = node.next
 			b := &Node{}
-			b.Type = TypeExponentiation
+			b.Operation = OperationExponentiation
 			b.Left = a
 			b.Right = c.Rulee4(node)
 			a = b
@@ -291,7 +313,7 @@ func (c *Calculator[U]) Rulee4(node *node[U]) *Node {
 		case rulevalue:
 			if minus > 0 {
 				e := &Node{}
-				e.Type = TypeNegation
+				e.Operation = OperationNegate
 				e.Count = minus
 				e.Left = c.Rulevalue(node)
 				return e
@@ -311,13 +333,13 @@ func (c *Calculator[U]) Rulevalue(node *node[U]) *Node {
 		switch node.pegRule {
 		case rulenumber:
 			a := &Node{}
-			a.Type = TypeNumber
+			a.Operation = OperationNumber
 			a.Value = big.NewInt(0)
 			a.Value.SetString(string(c.buffer[node.begin:node.end]), 10)
 			return a
 		case rulevariable:
 			a := &Node{}
-			a.Type = TypeVariable
+			a.Operation = OperationVariable
 			a.Variable = string(c.buffer[node.begin:node.end])
 			return a
 		case rulesub:
@@ -334,8 +356,8 @@ func (c *Calculator[U]) Rulesub(node *node[U]) *Node {
 		switch node.pegRule {
 		case rulee1:
 			e := &Node{
-				Type: TypeExpression,
-				Left: c.Rulee1(node),
+				Operation: OperationExpression,
+				Left:      c.Rulee1(node),
 			}
 			return e
 		}
@@ -344,37 +366,269 @@ func (c *Calculator[U]) Rulesub(node *node[U]) *Node {
 	return nil
 }
 
+// Derivative takes the derivative of the equation
+// https://www.cs.utexas.edu/users/novak/asg-symdif.html#:~:text=Introduction,numeric%20calculations%20based%20on%20formulas.
+func (n *Node) Derivative() *Node {
+	var process func(n *Node) *Node
+	process = func(n *Node) *Node {
+		if n == nil {
+			return nil
+		}
+		switch n.Operation {
+		case OperationNoop:
+			return n
+		case OperationAdd:
+			a := &Node{
+				Operation: OperationAdd,
+				Left:      process(n.Left),
+				Right:     process(n.Right),
+			}
+			return a
+		case OperationSubtract:
+			a := &Node{
+				Operation: OperationSubtract,
+				Left:      process(n.Left),
+				Right:     process(n.Right),
+			}
+			return a
+		case OperationMultiply:
+			left := &Node{
+				Operation: OperationMultiply,
+				Left:      n.Left,
+				Right:     process(n.Right),
+			}
+			right := &Node{
+				Operation: OperationMultiply,
+				Left:      n.Right,
+				Right:     process(n.Left),
+			}
+			a := &Node{
+				Operation: OperationAdd,
+				Left:      left,
+				Right:     right,
+			}
+			return a
+		case OperationDivide:
+			left := &Node{
+				Operation: OperationMultiply,
+				Left:      n.Right,
+				Right:     process(n.Left),
+			}
+			right := &Node{
+				Operation: OperationMultiply,
+				Left:      n.Left,
+				Right:     process(n.Right),
+			}
+			difference := &Node{
+				Operation: OperationSubtract,
+				Left:      left,
+				Right:     right,
+			}
+			square := &Node{
+				Operation: OperationExponentiation,
+				Left:      n.Right,
+				Right: &Node{
+					Operation: OperationNumber,
+					Value:     big.NewInt(2),
+				},
+			}
+			a := &Node{
+				Operation: OperationDivide,
+				Left:      difference,
+				Right:     square,
+			}
+			return a
+		case OperationModulus:
+			return n
+		case OperationExponentiation:
+			one := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(1),
+			}
+			subtract := &Node{
+				Operation: OperationExpression,
+				Left: &Node{
+					Operation: OperationSubtract,
+					Left:      n.Right,
+					Right:     one,
+				},
+			}
+			exp := &Node{
+				Operation: OperationExponentiation,
+				Left:      n.Left,
+				Right:     subtract,
+			}
+			a := &Node{
+				Operation: OperationMultiply,
+				Left:      n.Right,
+				Right:     exp,
+			}
+			a = &Node{
+				Operation: OperationMultiply,
+				Left:      a,
+				Right:     process(n.Left),
+			}
+			return a
+		case OperationNegate:
+			a := &Node{
+				Operation: OperationNegate,
+				Left:      process(n.Left),
+			}
+			return a
+		case OperationVariable:
+			a := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(1),
+			}
+			return a
+		case OperationImaginary:
+			a := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(0),
+			}
+			return a
+		case OperationNumber:
+			a := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(0),
+			}
+			return a
+		case OperationNotation:
+			a := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(0),
+			}
+			return a
+		case OperationNaturalExponentiation:
+			a := &Node{
+				Operation: OperationMultiply,
+				Left:      n,
+				Right:     process(n.Left),
+			}
+			return a
+		case OperationNatural:
+			a := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(0),
+			}
+			return a
+		case OperationPI:
+			a := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(0),
+			}
+			return a
+		case OperationNaturalLogarithm:
+			a := &Node{
+				Operation: OperationDivide,
+				Left:      process(n.Left),
+				Right:     n.Left,
+			}
+			return a
+		case OperationSquareRoot:
+			value2 := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(2),
+			}
+			multiply := &Node{
+				Operation: OperationMultiply,
+				Left:      value2,
+				Right:     n,
+			}
+			a := &Node{
+				Operation: OperationDivide,
+				Left:      process(n.Left),
+				Right:     multiply,
+			}
+			return a
+		case OperationCosine:
+			sin := &Node{
+				Operation: OperationSine,
+				Left:      n.Left,
+			}
+			multiply := &Node{
+				Operation: OperationMultiply,
+				Left:      sin,
+				Right:     process(n.Left),
+			}
+			a := &Node{
+				Operation: OperationNegate,
+				Left:      multiply,
+			}
+			return a
+		case OperationSine:
+			cos := &Node{
+				Operation: OperationCosine,
+				Left:      n.Left,
+			}
+			a := &Node{
+				Operation: OperationMultiply,
+				Left:      cos,
+				Right:     process(n.Left),
+			}
+			return a
+		case OperationTangent:
+			value1 := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(1),
+			}
+			value2 := &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(2),
+			}
+			exp := &Node{
+				Operation: OperationExponentiation,
+				Left:      n,
+				Right:     value2,
+			}
+			add := &Node{
+				Operation: OperationAdd,
+				Left:      value1,
+				Right:     exp,
+			}
+			a := &Node{
+				Operation: OperationMultiply,
+				Left:      add,
+				Right:     process(n.Left),
+			}
+			return a
+		}
+		return nil
+	}
+	return process(n)
+}
+
 func (n *Node) Calculate(x *big.Int) *big.Int {
 	var a *big.Int
-	switch n.Type {
-	case TypeNumber:
+	switch n.Operation {
+	case OperationNumber:
 		a = big.NewInt(0)
 		a = a.Set(n.Value)
-	case TypeVariable:
+	case OperationVariable:
 		a = big.NewInt(0)
 		a = a.Set(x)
-	case TypeNegation:
+	case OperationNegate:
 		a = n.Left.Calculate(x)
 		a = a.Neg(a)
-	case TypeAdd:
+	case OperationAdd:
 		a = n.Left.Calculate(x)
 		a.Add(a, n.Right.Calculate(x))
-	case TypeSubtract:
+	case OperationSubtract:
 		a = n.Left.Calculate(x)
 		a.Sub(a, n.Right.Calculate(x))
-	case TypeMultiply:
+	case OperationMultiply:
 		a = n.Left.Calculate(x)
 		a.Mul(a, n.Right.Calculate(x))
-	case TypeDivide:
+	case OperationDivide:
 		a = n.Left.Calculate(x)
 		a.Div(a, n.Right.Calculate(x))
-	case TypeModulus:
+	case OperationModulus:
 		a = n.Left.Calculate(x)
 		a.Mod(a, n.Right.Calculate(x))
-	case TypeExponentiation:
+	case OperationExponentiation:
 		a = n.Left.Calculate(x)
 		a.Exp(a, n.Right.Calculate(x), nil)
-	case TypeExpression:
+	case OperationExpression:
 		a = n.Left.Calculate(x)
 	}
 	return a
@@ -382,37 +636,37 @@ func (n *Node) Calculate(x *big.Int) *big.Int {
 
 func (n *Node) String() string {
 	var a string
-	switch n.Type {
-	case TypeNumber:
+	switch n.Operation {
+	case OperationNumber:
 		a = n.Value.String()
-	case TypeVariable:
+	case OperationVariable:
 		a = n.Variable
-	case TypeNegation:
+	case OperationNegate:
 		a = n.Left.String()
 		minus := ""
 		for range n.Count {
 			minus += "-"
 		}
 		a = minus + a
-	case TypeAdd:
+	case OperationAdd:
 		a = n.Left.String()
 		a = a + "+" + n.Right.String()
-	case TypeSubtract:
+	case OperationSubtract:
 		a = n.Left.String()
 		a = a + "-" + n.Right.String()
-	case TypeMultiply:
+	case OperationMultiply:
 		a = n.Left.String()
 		a = a + "*" + n.Right.String()
-	case TypeDivide:
+	case OperationDivide:
 		a = n.Left.String()
 		a = a + "/" + n.Right.String()
-	case TypeModulus:
+	case OperationModulus:
 		a = n.Left.String()
 		a = a + "%" + n.Right.String()
-	case TypeExponentiation:
+	case OperationExponentiation:
 		a = n.Left.String()
 		a = a + "^" + n.Right.String()
-	case TypeExpression:
+	case OperationExpression:
 		a = "(" + n.Left.String() + ")"
 	}
 	return a
