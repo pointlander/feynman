@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
+	"sort"
 	"testing"
 )
 
@@ -47,6 +48,7 @@ func TestGenerate(t *testing.T) {
 	g := NewGaussian()
 	s := Samples{}
 	for i := 0; i < 33; i++ {
+		s.Samples = append(s.Samples, Set{})
 		expression := s.Generate(g, rng)
 		t.Log(i, expression)
 		calc := &Calculator[uint32]{Buffer: expression}
@@ -82,7 +84,8 @@ func TestRandomSearch(t *testing.T) {
 outer:
 	for i := 0; i < 1024; i++ {
 		s := Samples{}
-		for k := 0; k < 33; k++ {
+		for k := 0; k < 128; k++ {
+			s.Samples = append(s.Samples, Set{})
 			query := s.Generate(g, rng)
 			t.Log(query)
 			y := &Calculator[uint32]{Buffer: query}
@@ -96,33 +99,42 @@ outer:
 			b := y.Tree()
 
 			fitness := big.NewInt(0)
-			for j := 0; j < 256; j++ {
-				z := int64(rng.Intn(1024) + 1)
+			fit := func() {
+				defer func() {
+					recover()
+				}()
+				z := int64(rng.Intn(512) + 1)
 				diff := big.NewInt(0).Sub(a.Calculate(big.NewInt(z)), b.Calculate(big.NewInt(z)))
 				diff = diff.Mul(diff, diff)
 				fitness = fitness.Add(fitness, diff)
 			}
-			t.Log(fitness)
+			for j := 0; j < 256; j++ {
+				fit()
+			}
+			s.Samples[len(s.Samples)-1].Fitness = fitness
 			if fitness.Cmp(big.NewInt(0)) == 0 {
 				t.Log("result", query)
 				break outer
 			}
 		}
+		sort.Slice(s.Samples, func(i, j int) bool {
+			return s.Samples[i].Fitness.Cmp(s.Samples[j].Fitness) < 0
+		})
 		for k := 0; k < Width; k++ {
 			sum, count := 0.0, 0.0
-			for _, v := range s.Samples {
-				for _, vv := range v[k].Value {
+			for _, v := range s.Samples[:64] {
+				for _, vv := range v.Set[k].Value {
 					count++
 					sum += vv
 				}
 			}
-			if count == 0 {
+			if count < 7 {
 				continue
 			}
 			avg := sum / count
 			stddev := 0.0
-			for _, v := range s.Samples {
-				for _, vv := range v[k].Value {
+			for _, v := range s.Samples[:64] {
+				for _, vv := range v.Set[k].Value {
 					diff := avg - vv
 					stddev += diff * diff
 				}

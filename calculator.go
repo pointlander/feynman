@@ -63,9 +63,15 @@ type Sample struct {
 	Value []float64
 }
 
+// Set is a set of samples
+type Set struct {
+	Set     [Width]Sample
+	Fitness *big.Int
+}
+
 // Samples is a set of samples
 type Samples struct {
-	Samples [][Width]Sample
+	Samples []Set
 }
 
 // Gaussian is a gaussian
@@ -86,15 +92,12 @@ func NewGaussian() (g [Width]Gaussian) {
 func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 	x := rng.Perm(3)
 	y := rng.Perm(8)
-	samples := [Width]Sample{}
-	defer func() {
-		s.Samples = append(s.Samples, samples)
-	}()
+	samples := &s.Samples[len(s.Samples)-1]
 	for _, v := range x[:2] {
 		switch v {
 		case 0:
 			sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
-			samples[0].Value = append(samples[0].Value, sample)
+			samples.Set[0].Value = append(samples.Set[0].Value, sample)
 			if sample > 0 {
 				return "x"
 			}
@@ -103,7 +106,7 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 			sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
 			for sample > 0 {
 				x++
-				samples[1].Value = append(samples[1].Value, sample)
+				samples.Set[1].Value = append(samples.Set[1].Value, sample)
 				sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
 			}
 			return fmt.Sprintf("%d", x)
@@ -111,19 +114,19 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 			for i, vv := range y[:7] {
 				if Symbols[vv].Type == 0 {
 					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
-					samples[2+i].Value = append(samples[2+i].Value, sample)
+					samples.Set[2+i].Value = append(samples.Set[2+i].Value, sample)
 					if sample > 0 {
 						return s.Generate(g, rng) + Symbols[vv].Symbol + s.Generate(g, rng)
 					}
 				} else if Symbols[vv].Type == 1 {
 					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
-					samples[2+i].Value = append(samples[2+i].Value, sample)
+					samples.Set[2+i].Value = append(samples.Set[2+i].Value, sample)
 					if sample > 0 {
 						return Symbols[vv].Symbol + s.Generate(g, rng)
 					}
 				} else {
 					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
-					samples[2+i].Value = append(samples[2+i].Value, sample)
+					samples.Set[2+i].Value = append(samples.Set[2+i].Value, sample)
 					if sample > 0 {
 						return "(" + s.Generate(g, rng) + ")"
 					}
@@ -135,7 +138,7 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 	switch x[2] {
 	case 0:
 		sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
-		samples[0].Value = append(samples[0].Value, sample)
+		samples.Set[0].Value = append(samples.Set[0].Value, sample)
 		if sample > 0 {
 			return "x"
 		}
@@ -144,7 +147,7 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 		sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
 		for sample > 0 {
 			x++
-			samples[1].Value = append(samples[1].Value, sample)
+			samples.Set[1].Value = append(samples.Set[1].Value, sample)
 			sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
 		}
 		return fmt.Sprintf("%d", x)
@@ -152,19 +155,19 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 		vv := y[7]
 		if Symbols[vv].Type == 0 {
 			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples[2+vv].Value = append(samples[2+vv].Value, sample)
+			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
 			if sample > 0 {
 				return s.Generate(g, rng) + Symbols[vv].Symbol + s.Generate(g, rng)
 			}
 		} else if Symbols[vv].Type == 1 {
 			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples[2+vv].Value = append(samples[2+vv].Value, sample)
+			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
 			if sample > 0 {
 				return Symbols[vv].Symbol + s.Generate(g, rng)
 			}
 		} else {
 			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples[2+7].Value = append(samples[2+vv].Value, sample)
+			samples.Set[2+7].Value = append(samples.Set[2+vv].Value, sample)
 			if sample > 0 {
 				return "(" + s.Generate(g, rng) + ")"
 			}
