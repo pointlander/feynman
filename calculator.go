@@ -109,125 +109,7 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 	}
 	depth--
 
-	x := rng.Perm(3)
-	y := rng.Perm(6)
-	samples := &s.Samples[len(s.Samples)-1]
-	for _, v := range x[:2] {
-		switch v {
-		case 0:
-			sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
-			samples.Set[0].Value = append(samples.Set[0].Value, sample)
-			if sample > 0 {
-				return &Node{
-					Operation: OperationVariable,
-					Variable:  "x",
-				}
-			}
-		case 1:
-			x := 1
-			sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
-			for sample > 0 {
-				x++
-				samples.Set[1].Value = append(samples.Set[1].Value, sample)
-				sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
-			}
-			return &Node{
-				Operation: OperationNumber,
-				Value:     big.NewFloat(float64(x)),
-			}
-		case 2:
-			for _, vv := range y[:5] {
-				switch vv {
-				case 0:
-					sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-					samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-					if sample > 0 {
-						return &Node{
-							Operation: OperationAdd,
-							Left:      s.Generate(depth, g, rng),
-							Right:     s.Generate(depth, g, rng),
-						}
-					}
-				case 1:
-					sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-					samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-					if sample > 0 {
-						return &Node{
-							Operation: OperationSubtract,
-							Left:      s.Generate(depth, g, rng),
-							Right:     s.Generate(depth, g, rng),
-						}
-					}
-				case 2:
-					sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-					samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-					if sample > 0 {
-						return &Node{
-							Operation: OperationMultiply,
-							Left:      s.Generate(depth, g, rng),
-							Right:     s.Generate(depth, g, rng),
-						}
-					}
-				case 3:
-					sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-					samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-					if sample > 0 {
-						return &Node{
-							Operation: OperationDivide,
-							Left:      s.Generate(depth, g, rng),
-							Right:     s.Generate(depth, g, rng),
-						}
-					}
-				case 4:
-					sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-					samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-					if sample > 0 {
-						gg := g
-						gg[2+vv].Mean -= 1337
-						return &Node{
-							Operation: OperationExponentiation,
-							Left:      s.Generate(depth, gg, rng),
-							Right:     s.Generate(depth, gg, rng),
-						}
-					}
-				case 5:
-					sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-					samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-					if sample > 0 {
-						return &Node{
-							Operation: OperationNegate,
-							Left:      s.Generate(depth, g, rng),
-						}
-					}
-				}
-			}
-		}
-	}
-
-	switch x[2] {
-	case 0:
-		sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
-		samples.Set[0].Value = append(samples.Set[0].Value, sample)
-		if sample > 0 {
-			return &Node{
-				Operation: OperationVariable,
-				Variable:  "x",
-			}
-		}
-	case 1:
-		x := 1
-		sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
-		for sample > 0 {
-			x++
-			samples.Set[1].Value = append(samples.Set[1].Value, sample)
-			sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
-		}
-		return &Node{
-			Operation: OperationNumber,
-			Value:     big.NewFloat(float64(x)),
-		}
-	case 2:
-		vv := y[6]
+	generate := func(vv int, samples *Set) *Node {
 		switch vv {
 		case 0:
 			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
@@ -290,6 +172,73 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 					Left:      s.Generate(depth, g, rng),
 				}
 			}
+		}
+		return nil
+	}
+
+	x := rng.Perm(3)
+	y := rng.Perm(6)
+	samples := &s.Samples[len(s.Samples)-1]
+	for _, v := range x[:2] {
+		switch v {
+		case 0:
+			sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
+			samples.Set[0].Value = append(samples.Set[0].Value, sample)
+			if sample > 0 {
+				return &Node{
+					Operation: OperationVariable,
+					Variable:  "x",
+				}
+			}
+		case 1:
+			x := 1
+			sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
+			for sample > 0 {
+				x++
+				samples.Set[1].Value = append(samples.Set[1].Value, sample)
+				sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
+			}
+			return &Node{
+				Operation: OperationNumber,
+				Value:     big.NewFloat(float64(x)),
+			}
+		case 2:
+			for _, vv := range y[:5] {
+				result := generate(vv, samples)
+				if result != nil {
+					return result
+				}
+			}
+		}
+	}
+
+	switch x[2] {
+	case 0:
+		sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
+		samples.Set[0].Value = append(samples.Set[0].Value, sample)
+		if sample > 0 {
+			return &Node{
+				Operation: OperationVariable,
+				Variable:  "x",
+			}
+		}
+	case 1:
+		x := 1
+		sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
+		for sample > 0 {
+			x++
+			samples.Set[1].Value = append(samples.Set[1].Value, sample)
+			sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
+		}
+		return &Node{
+			Operation: OperationNumber,
+			Value:     big.NewFloat(float64(x)),
+		}
+	case 2:
+		vv := y[6]
+		result := generate(vv, samples)
+		if result != nil {
+			return result
 		}
 	}
 	return &Node{
