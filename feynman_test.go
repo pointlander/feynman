@@ -79,7 +79,7 @@ outer:
 		s := Samples{}
 		for k := 0; k < 128; k++ {
 			s.Samples = append(s.Samples, Set{})
-			query := s.Generate(3, g, rng)
+			query := s.Generate(5, g, rng)
 			t.Log(k, query.String())
 			b := query.Derivative()
 

@@ -182,10 +182,12 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 					sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
 					samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
 					if sample > 0 {
+						gg := g
+						gg[2+vv].Mean -= 1337
 						return &Node{
 							Operation: OperationExponentiation,
-							Left:      s.Generate(depth, g, rng),
-							Right:     s.Generate(depth, g, rng),
+							Left:      s.Generate(depth, gg, rng),
+							Right:     s.Generate(depth, gg, rng),
 						}
 					}
 				case 5:
@@ -271,10 +273,12 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
 			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
 			if sample > 0 {
+				gg := g
+				gg[2+vv].Mean -= 1337
 				return &Node{
 					Operation: OperationExponentiation,
-					Left:      s.Generate(depth, g, rng),
-					Right:     s.Generate(depth, g, rng),
+					Left:      s.Generate(depth, gg, rng),
+					Right:     s.Generate(depth, gg, rng),
 				}
 			}
 		case 5:
