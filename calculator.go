@@ -112,51 +112,37 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 	depth--
 
 	generate := func(vv int, samples *Set) *Node {
-		switch vv {
-		case 0:
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
+		sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
+		samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
+		if sample > 0 {
+			switch vv {
+			case 0:
 				return &Node{
 					Operation: OperationAdd,
 					Left:      s.Generate(depth, g, rng),
 					Right:     s.Generate(depth, g, rng),
 				}
-			}
-		case 1:
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
+			case 1:
+
 				return &Node{
 					Operation: OperationSubtract,
 					Left:      s.Generate(depth, g, rng),
 					Right:     s.Generate(depth, g, rng),
 				}
-			}
-		case 2:
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
+
+			case 2:
 				return &Node{
 					Operation: OperationMultiply,
 					Left:      s.Generate(depth, g, rng),
 					Right:     s.Generate(depth, g, rng),
 				}
-			}
-		case 3:
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
+			case 3:
 				return &Node{
 					Operation: OperationDivide,
 					Left:      s.Generate(depth, g, rng),
 					Right:     s.Generate(depth, g, rng),
 				}
-			}
-		case 4:
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
+			case 4:
 				gg := g
 				gg[2+vv].Mean -= 1337
 				return &Node{
@@ -164,11 +150,7 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 					Left:      s.Generate(depth, gg, rng),
 					Right:     s.Generate(depth, gg, rng),
 				}
-			}
-		case 5:
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
+			case 5:
 				return &Node{
 					Operation: OperationNegate,
 					Left:      s.Generate(depth, g, rng),
