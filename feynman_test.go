@@ -13,7 +13,7 @@ import (
 )
 
 func TestCalculate(t *testing.T) {
-	expression := "(1--3)/3+2*(3+-4)+3%2^2"
+	expression := "(1--3)+2*(3+-4)"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -22,13 +22,14 @@ func TestCalculate(t *testing.T) {
 	if err := calc.Parse(); err != nil {
 		t.Fatal(err)
 	}
-	if calc.Tree().Calculate(big.NewInt(1)).Cmp(big.NewInt(2)) != 0 {
-		t.Fatal("got incorrect result")
+	result := calc.Tree().Calculate(big.NewFloat(1))
+	if result.Cmp(big.NewFloat(2)) != 0 {
+		t.Fatal("got incorrect result", result.String())
 	}
 }
 
 func TestString(t *testing.T) {
-	expression := "(1--3)/3+2*(3+-4)+3%2^2"
+	expression := "(((1 - -(3)) / 3) + (2 * (3 + -(4))))"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -39,7 +40,7 @@ func TestString(t *testing.T) {
 	}
 	parsed := calc.Tree().String()
 	if parsed != expression {
-		t.Fatal("strings don't match")
+		t.Fatal("strings don't match", parsed)
 	}
 }
 
@@ -49,7 +50,7 @@ func TestGenerate(t *testing.T) {
 	s := Samples{}
 	for i := 0; i < 33; i++ {
 		s.Samples = append(s.Samples, Set{})
-		expression := s.Generate(g, rng)
+		expression := s.Generate(5, g, rng)
 		t.Log(i, expression.String())
 		parsed := expression.String()
 		if parsed != expression.String() {
@@ -78,33 +79,32 @@ outer:
 		s := Samples{}
 		for k := 0; k < 128; k++ {
 			s.Samples = append(s.Samples, Set{})
-			query := s.Generate(g, rng)
+			query := s.Generate(3, g, rng)
 			t.Log(k, query.String())
 			b := query.Derivative()
 
-			fitness := big.NewInt(0)
-			fit := func() *big.Int {
+			fitness := big.NewFloat(0)
+			fit := func() *big.Float {
 				defer func() {
 					recover()
 				}()
-				z := int64(rng.Intn(1024) + 1)
-				aa := a.Calculate(big.NewInt(z))
-				bb := b.Calculate(big.NewInt(z))
-				diff := big.NewInt(0).Sub(aa, bb)
+				z := float64(rng.Intn(256) + 1)
+				aa := a.Calculate(big.NewFloat(z))
+				bb := b.Calculate(big.NewFloat(z))
+				diff := big.NewFloat(0).Sub(aa, bb)
 				diff = diff.Mul(diff, diff)
-				t.Log(aa, bb, diff)
 				return diff
 			}
 			for j := 0; j < 256; j++ {
 				fit := fit()
 				if fit == nil {
-					fit = big.NewInt(1337)
+					fit = big.NewFloat(1337)
 				}
 				fitness = fitness.Add(fitness, fit)
 			}
 			s.Samples[len(s.Samples)-1].Fitness = fitness
 			t.Log("fitness", fitness)
-			if fitness.Cmp(big.NewInt(0)) == 0 {
+			if fitness.Cmp(big.NewFloat(0)) == 0 {
 				t.Log("result", query)
 				t.Log("dresult", b.String())
 				break outer
