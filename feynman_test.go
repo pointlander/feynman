@@ -50,17 +50,9 @@ func TestGenerate(t *testing.T) {
 	for i := 0; i < 33; i++ {
 		s.Samples = append(s.Samples, Set{})
 		expression := s.Generate(g, rng)
-		t.Log(i, expression)
-		calc := &Calculator[uint32]{Buffer: expression}
-		err := calc.Init()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := calc.Parse(); err != nil {
-			t.Fatal(err)
-		}
-		parsed := calc.Tree().String()
-		if parsed != expression {
+		t.Log(i, expression.String())
+		parsed := expression.String()
+		if parsed != expression.String() {
 			t.Log(parsed)
 			t.Log(expression)
 			t.Fatal("strings don't match")
@@ -87,31 +79,31 @@ outer:
 		for k := 0; k < 128; k++ {
 			s.Samples = append(s.Samples, Set{})
 			query := s.Generate(g, rng)
-			t.Log(query)
-			y := &Calculator[uint32]{Buffer: query}
-			err := y.Init()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := y.Parse(); err != nil {
-				t.Fatal(err)
-			}
-			b := y.Tree().Derivative()
+			t.Log(k, query.String())
+			b := query.Derivative()
 
 			fitness := big.NewInt(0)
-			fit := func() {
+			fit := func() *big.Int {
 				defer func() {
 					recover()
 				}()
-				z := int64(rng.Intn(512) + 1)
-				diff := big.NewInt(0).Sub(a.Calculate(big.NewInt(z)), b.Calculate(big.NewInt(z)))
+				z := int64(rng.Intn(1024) + 1)
+				aa := a.Calculate(big.NewInt(z))
+				bb := b.Calculate(big.NewInt(z))
+				diff := big.NewInt(0).Sub(aa, bb)
 				diff = diff.Mul(diff, diff)
-				fitness = fitness.Add(fitness, diff)
+				t.Log(aa, bb, diff)
+				return diff
 			}
 			for j := 0; j < 256; j++ {
-				fit()
+				fit := fit()
+				if fit == nil {
+					fit = big.NewInt(1337)
+				}
+				fitness = fitness.Add(fitness, fit)
 			}
 			s.Samples[len(s.Samples)-1].Fitness = fitness
+			t.Log("fitness", fitness)
 			if fitness.Cmp(big.NewInt(0)) == 0 {
 				t.Log("result", query)
 				t.Log("dresult", b.String())

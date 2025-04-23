@@ -5,14 +5,13 @@
 package main
 
 import (
-	"fmt"
 	"math/big"
 	"math/rand"
 )
 
 const (
 	// Width is the number of random variables
-	Width = 10
+	Width = 9
 )
 
 // Operation is a mathematical operation
@@ -109,7 +108,7 @@ func NewGaussian() (g [Width]Gaussian) {
 }
 
 // Generate generates an equation
-func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
+func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) *Node {
 	x := rng.Perm(3)
 	y := rng.Perm(8)
 	samples := &s.Samples[len(s.Samples)-1]
@@ -119,7 +118,10 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 			sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
 			samples.Set[0].Value = append(samples.Set[0].Value, sample)
 			if sample > 0 {
-				return "x"
+				return &Node{
+					Operation: OperationVariable,
+					Variable:  "x",
+				}
 			}
 		case 1:
 			x := 1
@@ -129,26 +131,53 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 				samples.Set[1].Value = append(samples.Set[1].Value, sample)
 				sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
 			}
-			return fmt.Sprintf("%d", x)
+			return &Node{
+				Operation: OperationNumber,
+				Value:     big.NewInt(int64(x)),
+			}
 		case 2:
-			for i, vv := range y[:7] {
-				if Symbols[vv].Type == 0 {
-					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
-					samples.Set[2+i].Value = append(samples.Set[2+i].Value, sample)
-					if sample > 0 {
-						return s.Generate(g, rng) + Symbols[vv].Symbol + s.Generate(g, rng)
+			for _, vv := range y[:6] {
+				switch vv {
+				case 0:
+					return &Node{
+						Operation: OperationAdd,
+						Left:      s.Generate(g, rng),
+						Right:     s.Generate(g, rng),
 					}
-				} else if Symbols[vv].Type == 1 {
-					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
-					samples.Set[2+i].Value = append(samples.Set[2+i].Value, sample)
-					if sample > 0 {
-						return Symbols[vv].Symbol + s.Generate(g, rng)
+				case 1:
+					return &Node{
+						Operation: OperationSubtract,
+						Left:      s.Generate(g, rng),
+						Right:     s.Generate(g, rng),
 					}
-				} else {
-					sample := rng.NormFloat64()*g[2+i].Stddev + g[2+i].Mean
-					samples.Set[2+i].Value = append(samples.Set[2+i].Value, sample)
-					if sample > 0 {
-						return "(" + s.Generate(g, rng) + ")"
+				case 2:
+					return &Node{
+						Operation: OperationMultiply,
+						Left:      s.Generate(g, rng),
+						Right:     s.Generate(g, rng),
+					}
+				case 3:
+					return &Node{
+						Operation: OperationDivide,
+						Left:      s.Generate(g, rng),
+						Right:     s.Generate(g, rng),
+					}
+				case 4:
+					return &Node{
+						Operation: OperationModulus,
+						Left:      s.Generate(g, rng),
+						Right:     s.Generate(g, rng),
+					}
+				case 5:
+					return &Node{
+						Operation: OperationExponentiation,
+						Left:      s.Generate(g, rng),
+						Right:     s.Generate(g, rng),
+					}
+				case 6:
+					return &Node{
+						Operation: OperationNegate,
+						Left:      s.Generate(g, rng),
 					}
 				}
 			}
@@ -160,7 +189,10 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 		sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
 		samples.Set[0].Value = append(samples.Set[0].Value, sample)
 		if sample > 0 {
-			return "x"
+			return &Node{
+				Operation: OperationVariable,
+				Variable:  "x",
+			}
 		}
 	case 1:
 		x := 1
@@ -170,30 +202,60 @@ func (s *Samples) Generate(g [Width]Gaussian, rng *rand.Rand) string {
 			samples.Set[1].Value = append(samples.Set[1].Value, sample)
 			sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
 		}
-		return fmt.Sprintf("%d", x)
+		return &Node{
+			Operation: OperationNumber,
+			Value:     big.NewInt(int64(x)),
+		}
 	case 2:
-		vv := y[7]
-		if Symbols[vv].Type == 0 {
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
-				return s.Generate(g, rng) + Symbols[vv].Symbol + s.Generate(g, rng)
+		vv := y[6]
+		switch vv {
+		case 0:
+			return &Node{
+				Operation: OperationAdd,
+				Left:      s.Generate(g, rng),
+				Right:     s.Generate(g, rng),
 			}
-		} else if Symbols[vv].Type == 1 {
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
-				return Symbols[vv].Symbol + s.Generate(g, rng)
+		case 1:
+			return &Node{
+				Operation: OperationSubtract,
+				Left:      s.Generate(g, rng),
+				Right:     s.Generate(g, rng),
 			}
-		} else {
-			sample := rng.NormFloat64()*g[2+vv].Stddev + g[2+vv].Mean
-			samples.Set[2+vv].Value = append(samples.Set[2+vv].Value, sample)
-			if sample > 0 {
-				return "(" + s.Generate(g, rng) + ")"
+		case 2:
+			return &Node{
+				Operation: OperationMultiply,
+				Left:      s.Generate(g, rng),
+				Right:     s.Generate(g, rng),
+			}
+		case 3:
+			return &Node{
+				Operation: OperationDivide,
+				Left:      s.Generate(g, rng),
+				Right:     s.Generate(g, rng),
+			}
+		case 4:
+			return &Node{
+				Operation: OperationModulus,
+				Left:      s.Generate(g, rng),
+				Right:     s.Generate(g, rng),
+			}
+		case 5:
+			return &Node{
+				Operation: OperationExponentiation,
+				Left:      s.Generate(g, rng),
+				Right:     s.Generate(g, rng),
+			}
+		case 6:
+			return &Node{
+				Operation: OperationNegate,
+				Left:      s.Generate(g, rng),
 			}
 		}
 	}
-	return "1"
+	return &Node{
+		Operation: OperationNumber,
+		Value:     big.NewInt(1),
+	}
 }
 
 // Node is a node in an expression
