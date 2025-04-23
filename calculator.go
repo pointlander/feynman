@@ -7,6 +7,8 @@ package main
 import (
 	"math/big"
 	"math/rand"
+
+	"github.com/ALTree/bigfloat"
 )
 
 const (
@@ -629,27 +631,6 @@ func (n *Node) Derivative() *Node {
 	return process(n)
 }
 
-func Zero() *big.Float {
-	r := big.NewFloat(0.0)
-	return r
-}
-
-func Mul(a, b *big.Float) *big.Float {
-	return Zero().Mul(a, b)
-}
-
-func Pow(a, b *big.Float) *big.Float {
-	e, _ := b.Uint64()
-	if e == 0 {
-		return big.NewFloat(1)
-	}
-	result := Zero().Copy(a)
-	for i := uint64(0); i < e-1; i++ {
-		result = Mul(result, a)
-	}
-	return result
-}
-
 func (n *Node) Calculate(x *big.Float) *big.Float {
 	var a *big.Float
 	switch n.Operation {
@@ -676,7 +657,7 @@ func (n *Node) Calculate(x *big.Float) *big.Float {
 		a.Quo(a, n.Right.Calculate(x))
 	case OperationExponentiation:
 		a = n.Left.Calculate(x)
-		a = Pow(a, n.Right.Calculate(x))
+		a = bigfloat.Pow(a, n.Right.Calculate(x))
 	}
 	return a
 }

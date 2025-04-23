@@ -64,7 +64,7 @@ func TestGenerate(t *testing.T) {
 func TestRandomSearch(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	g := NewGaussian()
-	expression := "2*x"
+	expression := "3*x^2"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -77,7 +77,7 @@ func TestRandomSearch(t *testing.T) {
 outer:
 	for i := 0; i < 1024; i++ {
 		s := Samples{}
-		for k := 0; k < 128; k++ {
+		for k := 0; k < 256; k++ {
 			s.Samples = append(s.Samples, Set{})
 			query := s.Generate(5, g, rng)
 			t.Log(k, query.String())
@@ -115,7 +115,7 @@ outer:
 		})
 		for k := 0; k < Width; k++ {
 			sum, count := 0.0, 0.0
-			for _, v := range s.Samples[:64] {
+			for _, v := range s.Samples[:128] {
 				for _, vv := range v.Set[k].Value {
 					count++
 					sum += vv
@@ -126,7 +126,7 @@ outer:
 			}
 			avg := sum / count
 			stddev := 0.0
-			for _, v := range s.Samples[:64] {
+			for _, v := range s.Samples[:128] {
 				for _, vv := range v.Set[k].Value {
 					diff := avg - vv
 					stddev += diff * diff
