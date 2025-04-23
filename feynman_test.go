@@ -77,7 +77,7 @@ func TestRandomSearch(t *testing.T) {
 outer:
 	for i := 0; i < 1024; i++ {
 		s := Samples{}
-		for k := 0; k < 256; k++ {
+		for k := 0; k < 512; k++ {
 			s.Samples = append(s.Samples, Set{})
 			query := s.Generate(5, g, rng)
 			t.Log(k, query.String())
@@ -115,7 +115,7 @@ outer:
 		})
 		for k := 0; k < Width; k++ {
 			sum, count := 0.0, 0.0
-			for _, v := range s.Samples[:128] {
+			for _, v := range s.Samples[:256] {
 				for _, vv := range v.Set[k].Value {
 					count++
 					sum += vv

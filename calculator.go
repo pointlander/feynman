@@ -181,7 +181,7 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 	x := rng.Perm(3)
 	y := rng.Perm(6)
 	samples := &s.Samples[len(s.Samples)-1]
-	for _, v := range x[:2] {
+	for _, v := range x {
 		switch v {
 		case 0:
 			sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
@@ -199,13 +199,15 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 				x++
 				samples.Set[1].Value = append(samples.Set[1].Value, sample)
 				sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
-			}
-			return &Node{
-				Operation: OperationNumber,
-				Value:     big.NewFloat(float64(x)),
+				if sample < 0 {
+					return &Node{
+						Operation: OperationNumber,
+						Value:     big.NewFloat(float64(x)),
+					}
+				}
 			}
 		case 2:
-			for _, vv := range y[:5] {
+			for _, vv := range y {
 				result := generate(vv, samples)
 				if result != nil {
 					return result
@@ -214,35 +216,6 @@ func (s *Samples) Generate(depth int, g [Width]Gaussian, rng *rand.Rand) *Node {
 		}
 	}
 
-	switch x[2] {
-	case 0:
-		sample := rng.NormFloat64()*g[0].Stddev + g[0].Mean
-		samples.Set[0].Value = append(samples.Set[0].Value, sample)
-		if sample > 0 {
-			return &Node{
-				Operation: OperationVariable,
-				Variable:  "x",
-			}
-		}
-	case 1:
-		x := 1
-		sample := rng.NormFloat64()*g[1].Stddev + g[1].Mean
-		for sample > 0 {
-			x++
-			samples.Set[1].Value = append(samples.Set[1].Value, sample)
-			sample = rng.NormFloat64()*g[1].Stddev + g[1].Mean
-		}
-		return &Node{
-			Operation: OperationNumber,
-			Value:     big.NewFloat(float64(x)),
-		}
-	case 2:
-		vv := y[6]
-		result := generate(vv, samples)
-		if result != nil {
-			return result
-		}
-	}
 	return &Node{
 		Operation: OperationNumber,
 		Value:     big.NewFloat(1),
