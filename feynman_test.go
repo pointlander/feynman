@@ -50,7 +50,7 @@ func TestGenerate(t *testing.T) {
 	s := Samples{}
 	for i := 0; i < 33; i++ {
 		s.Samples = append(s.Samples, Set{})
-		expression := s.Generate(5, g, rng)
+		expression := s.Generate(5, &g, rng)
 		t.Log(i, expression.String())
 		parsed := expression.String()
 		if parsed != expression.String() {
@@ -77,9 +77,9 @@ func TestRandomSearch(t *testing.T) {
 outer:
 	for i := 0; i < 1024; i++ {
 		s := Samples{}
-		for k := 0; k < 512; k++ {
+		for k := 0; k < 1024; k++ {
 			s.Samples = append(s.Samples, Set{})
-			query := s.Generate(5, g, rng)
+			query := s.Generate(5, &g, rng)
 			t.Log(k, query.String())
 			b := query.Derivative()
 
@@ -102,7 +102,22 @@ outer:
 				}
 				fitness = fitness.Add(fitness, fit)
 			}
-			s.Samples[len(s.Samples)-1].Fitness = fitness
+			var set func(*Samples)
+			set = func(samples *Samples) {
+				if len(samples.Samples) == 0 {
+					return
+				}
+				if samples.Samples[len(samples.Samples)-1].Fitness == nil {
+					samples.Samples[len(samples.Samples)-1].Fitness = fitness
+				}
+				if samples.Left != nil {
+					set(samples.Left)
+				}
+				if samples.Right != nil {
+					set(samples.Right)
+				}
+			}
+			set(&s)
 			t.Log("fitness", fitness)
 			if fitness.Cmp(big.NewFloat(0)) == 0 {
 				t.Log("result", query)
@@ -110,32 +125,51 @@ outer:
 				break outer
 			}
 		}
-		sort.Slice(s.Samples, func(i, j int) bool {
-			return s.Samples[i].Fitness.Cmp(s.Samples[j].Fitness) < 0
-		})
-		for k := 0; k < Width; k++ {
-			sum, count := 0.0, 0.0
-			for _, v := range s.Samples[:256] {
-				for _, vv := range v.Set[k].Value {
-					count++
-					sum += vv
+		var re func(*Samples, *G)
+		re = func(s *Samples, g *G) {
+			length := len(s.Samples)
+			sort.Slice(s.Samples, func(i, j int) bool {
+				return s.Samples[i].Fitness.Cmp(s.Samples[j].Fitness) < 0
+			})
+			for k := 0; k < Width; k++ {
+				sum, count := 0.0, 0.0
+				for _, v := range s.Samples[:length/2] {
+					for _, vv := range v.Set[k].Value {
+						count++
+						sum += vv
+					}
 				}
-			}
-			if count < 7 {
-				continue
-			}
-			avg := sum / count
-			stddev := 0.0
-			for _, v := range s.Samples[:128] {
-				for _, vv := range v.Set[k].Value {
-					diff := avg - vv
-					stddev += diff * diff
+				if count < 7 {
+					continue
 				}
+				avg := sum / count
+				stddev := 0.0
+				for _, v := range s.Samples[:length/2] {
+					for _, vv := range v.Set[k].Value {
+						diff := avg - vv
+						stddev += diff * diff
+					}
+				}
+				stddev = math.Sqrt(stddev / count)
+				g.G[k].Mean = avg
+				g.G[k].Stddev = stddev
 			}
-			stddev = math.Sqrt(stddev / count)
-			g[k].Mean = avg
-			g[k].Stddev = stddev
+			if s.Left != nil {
+				if g.Left == nil {
+					gg := NewGaussian()
+					g.Left = &gg
+				}
+				re(s.Left, g.Left)
+			}
+			if s.Right != nil {
+				if g.Right == nil {
+					gg := NewGaussian()
+					g.Right = &gg
+				}
+				re(s.Right, g.Right)
+			}
 		}
+		re(&s, &g)
 		t.Log(g)
 	}
 }
