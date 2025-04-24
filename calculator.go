@@ -111,7 +111,7 @@ func NewGaussian() (g G) {
 }
 
 // Generate generates an equation
-func (s *Samples) Generate(depth int, g *G, rng *rand.Rand) *Node {
+func (s *Samples) Generate(depth int, g *G, mods [Width]float64, rng *rand.Rand) *Node {
 	if depth == 0 {
 		return &Node{
 			Operation: OperationNumber,
@@ -137,48 +137,48 @@ func (s *Samples) Generate(depth int, g *G, rng *rand.Rand) *Node {
 		if s.Right == nil {
 			s.Right = &Samples{}
 		}
-		if sample > 0 {
+		if sample+mods[2+vv] > 0 {
 			s.Left.Samples = append(s.Left.Samples, Set{})
 			s.Right.Samples = append(s.Right.Samples, Set{})
 			switch vv {
 			case 0:
 				return &Node{
 					Operation: OperationAdd,
-					Left:      s.Left.Generate(depth, left, rng),
-					Right:     s.Right.Generate(depth, right, rng),
+					Left:      s.Left.Generate(depth, left, mods, rng),
+					Right:     s.Right.Generate(depth, right, mods, rng),
 				}
 			case 1:
 
 				return &Node{
 					Operation: OperationSubtract,
-					Left:      s.Left.Generate(depth, left, rng),
-					Right:     s.Right.Generate(depth, right, rng),
+					Left:      s.Left.Generate(depth, left, mods, rng),
+					Right:     s.Right.Generate(depth, right, mods, rng),
 				}
 
 			case 2:
 				return &Node{
 					Operation: OperationMultiply,
-					Left:      s.Left.Generate(depth, left, rng),
-					Right:     s.Right.Generate(depth, right, rng),
+					Left:      s.Left.Generate(depth, left, mods, rng),
+					Right:     s.Right.Generate(depth, right, mods, rng),
 				}
 			case 3:
 				return &Node{
 					Operation: OperationDivide,
-					Left:      s.Left.Generate(depth, left, rng),
-					Right:     s.Right.Generate(depth, right, rng),
+					Left:      s.Left.Generate(depth, left, mods, rng),
+					Right:     s.Right.Generate(depth, right, mods, rng),
 				}
 			case 4:
-				gg := g
-				gg.G[2+vv].Mean -= 1337
+				mods := mods
+				mods[2+vv] -= 3
 				return &Node{
 					Operation: OperationExponentiation,
-					Left:      s.Left.Generate(depth, left, rng),
-					Right:     s.Right.Generate(depth, right, rng),
+					Left:      s.Left.Generate(depth, left, mods, rng),
+					Right:     s.Right.Generate(depth, right, mods, rng),
 				}
 			case 5:
 				return &Node{
 					Operation: OperationNegate,
-					Left:      s.Left.Generate(depth, left, rng),
+					Left:      s.Left.Generate(depth, left, mods, rng),
 				}
 			}
 		}
@@ -193,7 +193,7 @@ func (s *Samples) Generate(depth int, g *G, rng *rand.Rand) *Node {
 		case 0:
 			sample := rng.NormFloat64()*g.G[0].Stddev + g.G[0].Mean
 			samples.Set[0].Value = append(samples.Set[0].Value, sample)
-			if sample > 0 {
+			if sample+mods[0] > 0 {
 				return &Node{
 					Operation: OperationVariable,
 					Variable:  "x",
@@ -202,11 +202,11 @@ func (s *Samples) Generate(depth int, g *G, rng *rand.Rand) *Node {
 		case 1:
 			x := 1
 			sample := rng.NormFloat64()*g.G[1].Stddev + g.G[1].Mean
-			for sample > 0 {
+			for sample+mods[1] > 0 {
 				x++
-				samples.Set[1].Value = append(samples.Set[1].Value, sample)
+				//samples.Set[1].Value = append(samples.Set[1].Value, sample)
 				sample = rng.NormFloat64()*g.G[1].Stddev + g.G[1].Mean
-				if sample < 0 {
+				if sample+mods[1] < 0 {
 					return &Node{
 						Operation: OperationNumber,
 						Value:     big.NewFloat(float64(x)),

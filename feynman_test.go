@@ -50,7 +50,8 @@ func TestGenerate(t *testing.T) {
 	s := Samples{}
 	for i := 0; i < 33; i++ {
 		s.Samples = append(s.Samples, Set{})
-		expression := s.Generate(5, &g, rng)
+		mods := [Width]float64{}
+		expression := s.Generate(5, &g, mods, rng)
 		t.Log(i, expression.String())
 		parsed := expression.String()
 		if parsed != expression.String() {
@@ -64,7 +65,7 @@ func TestGenerate(t *testing.T) {
 func TestRandomSearch(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	g := NewGaussian()
-	expression := "3*x^2"
+	expression := "4*x^3"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -79,7 +80,8 @@ outer:
 		s := Samples{}
 		for k := 0; k < 1024; k++ {
 			s.Samples = append(s.Samples, Set{})
-			query := s.Generate(5, &g, rng)
+			mods := [Width]float64{}
+			query := s.Generate(5, &g, mods, rng)
 			t.Log(k, query.String())
 			b := query.Derivative()
 
