@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
+
+	"github.com/ALTree/bigfloat"
 )
 
 func TestCalculate(t *testing.T) {
@@ -189,4 +191,18 @@ func TestDerivative(t *testing.T) {
 	a := calc.Tree()
 	da := a.Derivative()
 	t.Log(da.String())
+}
+
+func BenchmarkFloat64(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		math.Pow(100, 3)
+	}
+}
+
+func BenchmarkFloat(b *testing.B) {
+	x := big.NewFloat(100)
+	y := big.NewFloat(3)
+	for i := 0; i < b.N; i++ {
+		bigfloat.Pow(x, y)
+	}
 }
