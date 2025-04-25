@@ -193,16 +193,30 @@ func TestDerivative(t *testing.T) {
 	t.Log(da.String())
 }
 
-func BenchmarkFloat64(b *testing.B) {
+func BenchmarkFloat64Pow(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		math.Pow(100, 3)
 	}
 }
 
-func BenchmarkFloat(b *testing.B) {
+func BenchmarkFloatPow(b *testing.B) {
 	x := big.NewFloat(100)
 	y := big.NewFloat(3)
 	for i := 0; i < b.N; i++ {
 		bigfloat.Pow(x, y)
+	}
+}
+
+func BenchmarkFloat64Mul(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = 100.0 * 3.0
+	}
+}
+
+func BenchmarkFloatMul(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		x := big.NewFloat(100)
+		y := big.NewFloat(3)
+		x.Mul(x, y)
 	}
 }
