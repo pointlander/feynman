@@ -62,14 +62,39 @@ const (
 	OperationNoop
 )
 
+// Source is the source of nodes
+type Source struct {
+	OperationCount    float64
+	OperationSum      [3]float64
+	OperationVariance [3]float64
+	Operation         [3]Gaussian
+	ValueCount        float64
+	ValueSum          [8]float64
+	ValueVariance     [8]float64
+	Value             [8]Gaussian
+	Left              *Source
+	Right             *Source
+}
+
 // Node is a node in an expression
 type Node struct {
-	Operation Operation
-	Value     float64
-	Variable  string
-	Left      *Node
-	Right     *Node
+	OperationSample [3]float64
+	Operation       Operation
+	ValueSample     [8]float64
+	Value           float64
+	Variable        string
+	Left            *Node
+	Right           *Node
 }
+
+// Root is the root node
+type Root struct {
+	Root    *Node
+	Fitness float64
+}
+
+// Roots is a set of roots
+type Roots []Root
 
 // Sample is a sample
 type Sample struct {
@@ -102,12 +127,186 @@ type G struct {
 	Right *G
 }
 
+// NewSource creates a new source tree
+func NewSource(depth int) *Source {
+	if depth == 0 {
+		return nil
+	}
+	depth--
+	source := Source{}
+	for i := range source.Operation {
+		source.Operation[i].Stddev = 1
+	}
+	for i := range source.Value {
+		source.Value[i].Stddev = 1
+	}
+	source.Left = NewSource(depth)
+	source.Right = NewSource(depth)
+	return &source
+}
+
 // NewGaussian makes a new gaussian distribution
 func NewGaussian() (g G) {
 	for i := range g.G {
 		g.G[i].Stddev = 1
 	}
 	return g
+}
+
+// Sample samples from the source
+func (s *Source) Sample(rng *rand.Rand) *Node {
+	n := Node{}
+	operation := Operation(0)
+	if s.Left != nil && s.Right != nil {
+		for i := range s.Operation {
+			operation <<= 1
+			sample := rng.NormFloat64()*s.Operation[i].Stddev + s.Operation[i].Mean
+			if sample > 0 {
+				operation |= 1
+			}
+			n.OperationSample[i] = sample
+		}
+	} else {
+		operation = OperationNumber
+	}
+	n.Operation = operation
+	value := byte(0)
+	for i := range s.Value {
+		value <<= 1
+		sample := rng.NormFloat64()*s.Value[i].Stddev + s.Value[i].Mean
+		if sample > 0 {
+			value |= 1
+		}
+		n.ValueSample[i] = sample
+	}
+	n.Value = float64(value)
+	n.Variable = "x"
+	if s.Left != nil {
+		n.Left = s.Left.Sample(rng)
+	}
+	if s.Right != nil {
+		n.Right = s.Right.Sample(rng)
+	}
+	return &n
+}
+
+// Samples generates multiple samples
+func (s *Source) Samples(rng *rand.Rand) Roots {
+	root := Roots{}
+	for i := 0; i < 128; i++ {
+		root = append(root, Root{
+			Root: s.Sample(rng),
+		})
+	}
+	return root
+}
+
+// Reset resets a source
+func (s *Source) Reset() {
+	s.OperationCount = 0
+	for i := range s.OperationSum {
+		s.OperationSum[i] = 0
+	}
+	for i := range s.OperationVariance {
+		s.OperationVariance[i] = 0
+	}
+	s.ValueCount = 0
+	for i := range s.ValueSum {
+		s.ValueSum[i] = 0
+	}
+	for i := range s.ValueVariance {
+		s.ValueVariance[i] = 0
+	}
+	if s.Left != nil {
+		s.Left.Reset()
+	}
+	if s.Right != nil {
+		s.Right.Reset()
+	}
+}
+
+// Statistics computes the statistics of Roots
+func (r Roots) Statistics(s *Source) {
+	s.Reset()
+	var sum func(*Source, *Node)
+	sum = func(s *Source, n *Node) {
+		s.OperationCount++
+		for i := range s.OperationSum {
+			s.OperationSum[i] += n.OperationSample[i]
+		}
+		s.ValueCount++
+		for i := range s.ValueSum {
+			s.ValueSum[i] += n.ValueSample[i]
+		}
+		if s.Left != nil && n.Left != nil {
+			sum(s.Left, n.Left)
+		}
+		if s.Right != nil && n.Right != nil {
+			sum(s.Right, n.Right)
+		}
+	}
+	for _, v := range r {
+		sum(s, v.Root)
+	}
+
+	var avg func(*Source, *Node)
+	avg = func(s *Source, n *Node) {
+		for i := range s.OperationSum {
+			s.Operation[i].Mean = s.OperationSum[i] / s.OperationCount
+		}
+		for i := range s.ValueSum {
+			s.Value[i].Mean = s.ValueSum[i] / s.ValueCount
+		}
+		if s.Left != nil && n.Left != nil {
+			avg(s.Left, n.Left)
+		}
+		if s.Right != nil && n.Right != nil {
+			avg(s.Right, n.Right)
+		}
+	}
+	for _, v := range r {
+		avg(s, v.Root)
+	}
+
+	var variance func(*Source, *Node)
+	variance = func(s *Source, n *Node) {
+		for i := range s.Operation {
+			diff := s.Operation[i].Mean - n.OperationSample[i]
+			s.OperationVariance[i] += diff * diff
+		}
+		for i := range s.Value {
+			diff := s.Value[i].Mean - n.ValueSample[i]
+			s.ValueVariance[i] = diff * diff
+		}
+		if s.Left != nil && n.Left != nil {
+			variance(s.Left, n.Left)
+		}
+		if s.Right != nil && n.Right != nil {
+			variance(s.Right, n.Right)
+		}
+	}
+	for _, v := range r {
+		variance(s, v.Root)
+	}
+
+	var stddev func(*Source, *Node)
+	stddev = func(s *Source, n *Node) {
+		for i := range s.Operation {
+			s.Operation[i].Stddev = math.Sqrt(s.OperationVariance[i] / s.OperationCount)
+		}
+		for i := range s.Value {
+			s.Value[i].Stddev = math.Sqrt(s.ValueVariance[i] / s.ValueCount)
+		}
+		if s.Left != nil && n.Left != nil {
+			stddev(s.Left, n.Left)
+		}
+		if s.Right != nil && n.Right != nil {
+			stddev(s.Right, n.Right)
+		}
+	}
+	for _, v := range r {
+		stddev(s, v.Root)
+	}
 }
 
 // Generate generates an equation

@@ -181,3 +181,13 @@ func TestDerivative(t *testing.T) {
 	da := a.Derivative()
 	t.Log(da.String())
 }
+
+func TestSource(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	s := NewSource(5)
+	r := s.Samples(rng)
+	for _, v := range r {
+		v.Root.Calculate(1)
+	}
+	r.Statistics(s)
+}
