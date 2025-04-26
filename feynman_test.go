@@ -191,3 +191,43 @@ func TestSource(t *testing.T) {
 	}
 	r.Statistics(s)
 }
+
+func TestNewMode(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	expression := "4*x^3"
+	calc := &Calculator[uint32]{Buffer: expression}
+	err := calc.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := calc.Parse(); err != nil {
+		t.Fatal(err)
+	}
+	a := calc.Tree()
+	s := NewSource(5)
+	for i := 0; i < 1024; i++ {
+		r := s.Samples(rng)
+		for j, v := range r {
+			b := v.Root.Derivative()
+			for k := 0; k < 256; k++ {
+				z := float64(rng.Intn(256) + 1)
+				aa := a.Calculate(z)
+				bb := b.Calculate(z)
+				diff := aa - bb
+				if math.IsInf(diff, 0) || math.IsNaN(diff) {
+					diff = 1337.0
+				}
+				r[j].Fitness += diff * diff
+			}
+		}
+		sort.Slice(r, func(i, j int) bool {
+			return r[i].Fitness < r[j].Fitness
+		})
+		t.Log(r[0].Fitness, r[0].Root.String())
+		if r[0].Fitness == 0 {
+			break
+		}
+		r = r[:32]
+		r.Statistics(s)
+	}
+}

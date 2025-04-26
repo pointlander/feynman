@@ -28,8 +28,6 @@ const (
 	OperationMultiply
 	// OperationDivide divides two numbers
 	OperationDivide
-	// OperationModulus computes the modulus of two numbers
-	OperationModulus
 	// OperationExponentiation raises a number to a number
 	OperationExponentiation
 	// OperationNegate changes the sign of a number
@@ -38,6 +36,8 @@ const (
 	OperationNumber
 	// OperationVariable is a variable
 	OperationVariable
+	// OperationModulus computes the modulus of two numbers
+	OperationModulus
 	// OperationImaginary is an imaginary number
 	OperationImaginary
 	// OperationNaturalExponentiation raises the natural number to a power
@@ -65,9 +65,9 @@ const (
 // Source is the source of nodes
 type Source struct {
 	OperationCount    float64
-	OperationSum      [3]float64
-	OperationVariance [3]float64
-	Operation         [3]Gaussian
+	OperationSum      [4]float64
+	OperationVariance [4]float64
+	Operation         [4]Gaussian
 	ValueCount        float64
 	ValueSum          [8]float64
 	ValueVariance     [8]float64
@@ -78,7 +78,7 @@ type Source struct {
 
 // Node is a node in an expression
 type Node struct {
-	OperationSample [3]float64
+	OperationSample [4]float64
 	Operation       Operation
 	ValueSample     [8]float64
 	Value           float64
@@ -157,7 +157,7 @@ func NewGaussian() (g G) {
 func (s *Source) Sample(rng *rand.Rand) *Node {
 	n := Node{}
 	operation := Operation(0)
-	if s.Left != nil && s.Right != nil {
+	for {
 		for i := range s.Operation {
 			operation <<= 1
 			sample := rng.NormFloat64()*s.Operation[i].Stddev + s.Operation[i].Mean
@@ -166,8 +166,10 @@ func (s *Source) Sample(rng *rand.Rand) *Node {
 			}
 			n.OperationSample[i] = sample
 		}
-	} else {
-		operation = OperationNumber
+		if ((s.Left != nil && s.Right != nil) || operation == OperationNumber || operation == OperationVariable) && operation < 8 {
+			break
+		}
+		operation = Operation(0)
 	}
 	n.Operation = operation
 	value := byte(0)
