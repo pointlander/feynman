@@ -5,10 +5,10 @@
 package main
 
 import (
-	"math/big"
+	"math"
 	"math/rand"
-
-	"github.com/ALTree/bigfloat"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -65,7 +65,7 @@ const (
 // Node is a node in an expression
 type Node struct {
 	Operation Operation
-	Value     *big.Float
+	Value     float64
 	Variable  string
 	Left      *Node
 	Right     *Node
@@ -79,7 +79,7 @@ type Sample struct {
 // Set is a set of samples
 type Set struct {
 	Set     [Width]Sample
-	Fitness *big.Float
+	Fitness float64
 }
 
 // Samples is a set of samples
@@ -111,11 +111,11 @@ func NewGaussian() (g G) {
 }
 
 // Generate generates an equation
-func (s *Samples) Generate(depth int, g *G, mods [Width]float64, rng *rand.Rand) *Node {
+func (s *Samples) Generate(depth int, g *G, rng *rand.Rand) *Node {
 	if depth == 0 {
 		return &Node{
 			Operation: OperationNumber,
-			Value:     big.NewFloat(1),
+			Value:     1.0,
 		}
 	}
 	depth--
@@ -137,48 +137,46 @@ func (s *Samples) Generate(depth int, g *G, mods [Width]float64, rng *rand.Rand)
 		if s.Right == nil {
 			s.Right = &Samples{}
 		}
-		if sample+mods[2+vv] > 0 {
+		if sample > 0 {
 			s.Left.Samples = append(s.Left.Samples, Set{})
 			s.Right.Samples = append(s.Right.Samples, Set{})
 			switch vv {
 			case 0:
 				return &Node{
 					Operation: OperationAdd,
-					Left:      s.Left.Generate(depth, left, mods, rng),
-					Right:     s.Right.Generate(depth, right, mods, rng),
+					Left:      s.Left.Generate(depth, left, rng),
+					Right:     s.Right.Generate(depth, right, rng),
 				}
 			case 1:
 
 				return &Node{
 					Operation: OperationSubtract,
-					Left:      s.Left.Generate(depth, left, mods, rng),
-					Right:     s.Right.Generate(depth, right, mods, rng),
+					Left:      s.Left.Generate(depth, left, rng),
+					Right:     s.Right.Generate(depth, right, rng),
 				}
 
 			case 2:
 				return &Node{
 					Operation: OperationMultiply,
-					Left:      s.Left.Generate(depth, left, mods, rng),
-					Right:     s.Right.Generate(depth, right, mods, rng),
+					Left:      s.Left.Generate(depth, left, rng),
+					Right:     s.Right.Generate(depth, right, rng),
 				}
 			case 3:
 				return &Node{
 					Operation: OperationDivide,
-					Left:      s.Left.Generate(depth, left, mods, rng),
-					Right:     s.Right.Generate(depth, right, mods, rng),
+					Left:      s.Left.Generate(depth, left, rng),
+					Right:     s.Right.Generate(depth, right, rng),
 				}
 			case 4:
-				mods := mods
-				mods[2+vv] -= 3
 				return &Node{
 					Operation: OperationExponentiation,
-					Left:      s.Left.Generate(depth, left, mods, rng),
-					Right:     s.Right.Generate(depth, right, mods, rng),
+					Left:      s.Left.Generate(depth, left, rng),
+					Right:     s.Right.Generate(depth, right, rng),
 				}
 			case 5:
 				return &Node{
 					Operation: OperationNegate,
-					Left:      s.Left.Generate(depth, left, mods, rng),
+					Left:      s.Left.Generate(depth, left, rng),
 				}
 			}
 		}
@@ -193,7 +191,7 @@ func (s *Samples) Generate(depth int, g *G, mods [Width]float64, rng *rand.Rand)
 		case 0:
 			sample := rng.NormFloat64()*g.G[0].Stddev + g.G[0].Mean
 			samples.Set[0].Value = append(samples.Set[0].Value, sample)
-			if sample+mods[0] > 0 {
+			if sample > 0 {
 				return &Node{
 					Operation: OperationVariable,
 					Variable:  "x",
@@ -202,14 +200,14 @@ func (s *Samples) Generate(depth int, g *G, mods [Width]float64, rng *rand.Rand)
 		case 1:
 			x := 1
 			sample := rng.NormFloat64()*g.G[1].Stddev + g.G[1].Mean
-			for sample+mods[1] > 0 {
+			for sample > 0 {
 				x++
 				//samples.Set[1].Value = append(samples.Set[1].Value, sample)
 				sample = rng.NormFloat64()*g.G[1].Stddev + g.G[1].Mean
-				if sample+mods[1] < 0 {
+				if sample < 0 {
 					return &Node{
 						Operation: OperationNumber,
-						Value:     big.NewFloat(float64(x)),
+						Value:     float64(x),
 					}
 				}
 			}
@@ -225,7 +223,7 @@ func (s *Samples) Generate(depth int, g *G, mods [Width]float64, rng *rand.Rand)
 
 	return &Node{
 		Operation: OperationNumber,
-		Value:     big.NewFloat(1),
+		Value:     1.0,
 	}
 }
 
@@ -354,8 +352,11 @@ func (c *Calculator[U]) Rulevalue(node *node[U]) *Node {
 		case rulenumber:
 			a := &Node{}
 			a.Operation = OperationNumber
-			a.Value = big.NewFloat(0)
-			a.Value.SetString(string(c.buffer[node.begin:node.end]))
+			value, err := strconv.ParseFloat(strings.TrimSpace(string(c.buffer[node.begin:node.end])), 64)
+			if err != nil {
+				panic(err)
+			}
+			a.Value = value
 			return a
 		case rulevariable:
 			a := &Node{}
@@ -445,7 +446,7 @@ func (n *Node) Derivative() *Node {
 				Left:      n.Right,
 				Right: &Node{
 					Operation: OperationNumber,
-					Value:     big.NewFloat(2),
+					Value:     2.0,
 				},
 			}
 			a := &Node{
@@ -459,7 +460,7 @@ func (n *Node) Derivative() *Node {
 		case OperationExponentiation:
 			one := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(1),
+				Value:     1.0,
 			}
 			subtract := &Node{
 				Operation: OperationSubtract,
@@ -491,25 +492,25 @@ func (n *Node) Derivative() *Node {
 		case OperationVariable:
 			a := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(1),
+				Value:     1.0,
 			}
 			return a
 		case OperationImaginary:
 			a := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(0),
+				Value:     0.0,
 			}
 			return a
 		case OperationNumber:
 			a := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(0),
+				Value:     0.0,
 			}
 			return a
 		case OperationNotation:
 			a := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(0),
+				Value:     0.0,
 			}
 			return a
 		case OperationNaturalExponentiation:
@@ -522,13 +523,13 @@ func (n *Node) Derivative() *Node {
 		case OperationNatural:
 			a := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(0),
+				Value:     0.0,
 			}
 			return a
 		case OperationPI:
 			a := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(0),
+				Value:     0.0,
 			}
 			return a
 		case OperationNaturalLogarithm:
@@ -541,7 +542,7 @@ func (n *Node) Derivative() *Node {
 		case OperationSquareRoot:
 			value2 := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(2),
+				Value:     2.0,
 			}
 			multiply := &Node{
 				Operation: OperationMultiply,
@@ -583,11 +584,11 @@ func (n *Node) Derivative() *Node {
 		case OperationTangent:
 			value1 := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(1),
+				Value:     1.0,
 			}
 			value2 := &Node{
 				Operation: OperationNumber,
-				Value:     big.NewFloat(2),
+				Value:     2.0,
 			}
 			exp := &Node{
 				Operation: OperationExponentiation,
@@ -611,33 +612,25 @@ func (n *Node) Derivative() *Node {
 	return process(n)
 }
 
-func (n *Node) Calculate(x *big.Float) *big.Float {
-	var a *big.Float
+func (n *Node) Calculate(x float64) float64 {
+	var a float64
 	switch n.Operation {
 	case OperationNumber:
-		a = big.NewFloat(0)
-		a = a.Set(n.Value)
+		a = n.Value
 	case OperationVariable:
-		a = big.NewFloat(0)
-		a = a.Set(x)
+		a = x
 	case OperationNegate:
-		a = n.Left.Calculate(x)
-		a = a.Neg(a)
+		a = -n.Left.Calculate(x)
 	case OperationAdd:
-		a = n.Left.Calculate(x)
-		a.Add(a, n.Right.Calculate(x))
+		a = n.Left.Calculate(x) + n.Right.Calculate(x)
 	case OperationSubtract:
-		a = n.Left.Calculate(x)
-		a.Sub(a, n.Right.Calculate(x))
+		a = n.Left.Calculate(x) - n.Right.Calculate(x)
 	case OperationMultiply:
-		a = n.Left.Calculate(x)
-		a.Mul(a, n.Right.Calculate(x))
+		a = n.Left.Calculate(x) * n.Right.Calculate(x)
 	case OperationDivide:
-		a = n.Left.Calculate(x)
-		a.Quo(a, n.Right.Calculate(x))
+		a = n.Left.Calculate(x) / n.Right.Calculate(x)
 	case OperationExponentiation:
-		a = n.Left.Calculate(x)
-		a = bigfloat.Pow(a, n.Right.Calculate(x))
+		a = math.Pow(n.Left.Calculate(x), n.Right.Calculate(x))
 	}
 	return a
 }
@@ -669,12 +662,12 @@ func (n *Node) String() string {
 		case OperationVariable:
 			return n.Variable
 		case OperationImaginary:
-			return n.Value.String() + "i"
+			return strconv.FormatFloat(n.Value, 'f', -1, 64) + "i"
 		case OperationNumber:
-			return n.Value.String()
+			return strconv.FormatFloat(n.Value, 'f', -1, 64)
 		case OperationNotation:
 			if n.Left.Operation == OperationImaginary {
-				return n.Left.Value.String() + "e" + process(n.Right) + "i"
+				return strconv.FormatFloat(n.Left.Value, 'f', -1, 64) + "e" + process(n.Right) + "i"
 			}
 			return process(n.Left) + "e" + process(n.Right)
 		case OperationNaturalExponentiation:

@@ -6,12 +6,9 @@ package main
 
 import (
 	"math"
-	"math/big"
 	"math/rand"
 	"sort"
 	"testing"
-
-	"github.com/ALTree/bigfloat"
 )
 
 func TestCalculate(t *testing.T) {
@@ -24,9 +21,9 @@ func TestCalculate(t *testing.T) {
 	if err := calc.Parse(); err != nil {
 		t.Fatal(err)
 	}
-	result := calc.Tree().Calculate(big.NewFloat(1))
-	if result.Cmp(big.NewFloat(2)) != 0 {
-		t.Fatal("got incorrect result", result.String())
+	result := calc.Tree().Calculate(1.0)
+	if result-2 != 0 {
+		t.Fatal("got incorrect result", result)
 	}
 }
 
@@ -52,8 +49,7 @@ func TestGenerate(t *testing.T) {
 	s := Samples{}
 	for i := 0; i < 33; i++ {
 		s.Samples = append(s.Samples, Set{})
-		mods := [Width]float64{}
-		expression := s.Generate(5, &g, mods, rng)
+		expression := s.Generate(5, &g, rng)
 		t.Log(i, expression.String())
 		parsed := expression.String()
 		if parsed != expression.String() {
@@ -82,38 +78,31 @@ outer:
 		s := Samples{}
 		for k := 0; k < 1024; k++ {
 			s.Samples = append(s.Samples, Set{})
-			mods := [Width]float64{}
-			query := s.Generate(5, &g, mods, rng)
+			query := s.Generate(5, &g, rng)
 			t.Log(k, query.String())
 			b := query.Derivative()
 
-			fitness := big.NewFloat(0)
-			fit := func() *big.Float {
-				defer func() {
-					recover()
-				}()
+			fitness := 0.0
+			fit := func() float64 {
 				z := float64(rng.Intn(256) + 1)
-				aa := a.Calculate(big.NewFloat(z))
-				bb := b.Calculate(big.NewFloat(z))
-				diff := big.NewFloat(0).Sub(aa, bb)
-				diff = diff.Mul(diff, diff)
-				return diff
+				aa := a.Calculate(z)
+				bb := b.Calculate(z)
+				diff := aa - bb
+				return diff * diff
 			}
 			for j := 0; j < 256; j++ {
 				fit := fit()
-				if fit == nil {
-					fit = big.NewFloat(1337)
+				if math.IsInf(fit, 0) || math.IsNaN(fit) {
+					fit = 1337.0
 				}
-				fitness = fitness.Add(fitness, fit)
+				fitness += fit
 			}
 			var set func(*Samples)
 			set = func(samples *Samples) {
 				if len(samples.Samples) == 0 {
 					return
 				}
-				if samples.Samples[len(samples.Samples)-1].Fitness == nil {
-					samples.Samples[len(samples.Samples)-1].Fitness = fitness
-				}
+				samples.Samples[len(samples.Samples)-1].Fitness = fitness
 				if samples.Left != nil {
 					set(samples.Left)
 				}
@@ -123,7 +112,7 @@ outer:
 			}
 			set(&s)
 			t.Log("fitness", fitness)
-			if fitness.Cmp(big.NewFloat(0)) == 0 {
+			if fitness == 0 {
 				t.Log("result", query)
 				t.Log("dresult", b.String())
 				break outer
@@ -133,7 +122,7 @@ outer:
 		re = func(s *Samples, g *G) {
 			length := len(s.Samples)
 			sort.Slice(s.Samples, func(i, j int) bool {
-				return s.Samples[i].Fitness.Cmp(s.Samples[j].Fitness) < 0
+				return s.Samples[i].Fitness < s.Samples[j].Fitness
 			})
 			for k := 0; k < Width; k++ {
 				sum, count := 0.0, 0.0
@@ -191,32 +180,4 @@ func TestDerivative(t *testing.T) {
 	a := calc.Tree()
 	da := a.Derivative()
 	t.Log(da.String())
-}
-
-func BenchmarkFloat64Pow(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		math.Pow(100, 3)
-	}
-}
-
-func BenchmarkFloatPow(b *testing.B) {
-	x := big.NewFloat(100)
-	y := big.NewFloat(3)
-	for i := 0; i < b.N; i++ {
-		bigfloat.Pow(x, y)
-	}
-}
-
-func BenchmarkFloat64Mul(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = 100.0 * 3.0
-	}
-}
-
-func BenchmarkFloatMul(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		x := big.NewFloat(100)
-		y := big.NewFloat(3)
-		x.Mul(x, y)
-	}
 }
