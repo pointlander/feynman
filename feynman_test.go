@@ -193,7 +193,7 @@ func TestSource(t *testing.T) {
 }
 
 func TestNewMode(t *testing.T) {
-	rng := rand.New(rand.NewSource(2))
+	rng := rand.New(rand.NewSource(3))
 	expression := "4*x^3"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
@@ -227,7 +227,7 @@ func TestNewMode(t *testing.T) {
 		if r[0].Fitness == 0 {
 			break
 		}
-		r = r[:64]
+		r = r[:32]
 		r.Statistics(s)
 	}
 }

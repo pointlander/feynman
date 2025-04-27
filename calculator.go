@@ -171,7 +171,7 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 			}
 			n.OperationSample[i] = sample
 		}
-		if (operation > 0 && operation < Width && depth != 0) || ((operation == OperationVariable || operation == OperationNumber) && depth == 0) {
+		if (operation != Operation(state[0]) && operation != Operation(state[1]) && operation > 0 && operation < Width && depth != 0) || ((operation == OperationVariable || operation == OperationNumber) && depth == 0) {
 			break
 		}
 		operation = Operation(0)
