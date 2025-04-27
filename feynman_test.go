@@ -227,7 +227,7 @@ func TestNewMode(t *testing.T) {
 		if r[0].Fitness == 0 {
 			break
 		}
-		r = r[:32]
+		r = r[:64]
 		r.Statistics(s)
 	}
 }

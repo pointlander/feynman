@@ -13,15 +13,17 @@ import (
 
 const (
 	// Width is the number of random variables
-	Width = 8
+	Width = 9
 )
 
 // Operation is a mathematical operation
 type Operation uint
 
 const (
+	// OperationNoop is a noop
+	OperationNoop Operation = iota
 	// OperationAdd adds two numbers
-	OperationAdd Operation = iota
+	OperationAdd
 	// OperationSubtract subtracts two numbers
 	OperationSubtract
 	// OperationMultiply multiplies two numbers
@@ -58,8 +60,6 @@ const (
 	OperationTangent
 	// OperationNotation is E notation operation
 	OperationNotation
-	// OperationNoop is a noop
-	OperationNoop
 )
 
 // Source is the source of nodes
@@ -72,9 +72,13 @@ type Source struct {
 	ValueSum          [8]float64
 	ValueVariance     [8]float64
 	Value             [8]Gaussian
-	Left              *Source
-	Right             *Source
 }
+
+// State is a markov state
+type State [2]byte
+
+// Markov is a markov model
+type Markov map[State]*Source
 
 // Node is a node in an expression
 type Node struct {
@@ -128,21 +132,21 @@ type G struct {
 }
 
 // NewSource creates a new source tree
-func NewSource(depth int) *Source {
-	if depth == 0 {
-		return nil
+func NewSource(depth int) Markov {
+	source := make(Markov, Width*Width)
+	for x := 0; x < Width; x++ {
+		for y := 0; y < Width; y++ {
+			s := Source{}
+			for i := range s.Operation {
+				s.Operation[i].Stddev = 1
+			}
+			for i := range s.Value {
+				s.Value[i].Stddev = 1
+			}
+			source[State{byte(x), byte(y)}] = &s
+		}
 	}
-	depth--
-	source := Source{}
-	for i := range source.Operation {
-		source.Operation[i].Stddev = 1
-	}
-	for i := range source.Value {
-		source.Value[i].Stddev = 1
-	}
-	source.Left = NewSource(depth)
-	source.Right = NewSource(depth)
-	return &source
+	return source
 }
 
 // NewGaussian makes a new gaussian distribution
@@ -154,84 +158,89 @@ func NewGaussian() (g G) {
 }
 
 // Sample samples from the source
-func (s *Source) Sample(rng *rand.Rand) *Node {
+func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 	n := Node{}
+	depth--
 	operation := Operation(0)
 	for {
-		for i := range s.Operation {
+		for i := range m[state].Operation {
 			operation <<= 1
-			sample := rng.NormFloat64()*s.Operation[i].Stddev + s.Operation[i].Mean
+			sample := rng.NormFloat64()*m[state].Operation[i].Stddev + m[state].Operation[i].Mean
 			if sample > 0 {
 				operation |= 1
 			}
 			n.OperationSample[i] = sample
 		}
-		if ((s.Left != nil && s.Right != nil) || operation == OperationNumber || operation == OperationVariable) && operation < 8 {
+		if (operation > 0 && operation < Width && depth != 0) || ((operation == OperationVariable || operation == OperationNumber) && depth == 0) {
 			break
 		}
 		operation = Operation(0)
 	}
 	n.Operation = operation
 	value := byte(0)
-	for i := range s.Value {
-		value <<= 1
-		sample := rng.NormFloat64()*s.Value[i].Stddev + s.Value[i].Mean
-		if sample > 0 {
-			value |= 1
+	for {
+		for i := range m[state].Value {
+			value <<= 1
+			sample := rng.NormFloat64()*m[state].Value[i].Stddev + m[state].Value[i].Mean
+			if sample > 0 {
+				value |= 1
+			}
+			n.ValueSample[i] = sample
 		}
-		n.ValueSample[i] = sample
+		if value < 8 {
+			break
+		}
+		value = byte(0)
 	}
 	n.Value = float64(value)
 	n.Variable = "x"
-	if s.Left != nil {
-		n.Left = s.Left.Sample(rng)
+	next := state
+	next[0], next[1] = byte(operation), next[0]
+	if depth == 0 {
+		return &n
 	}
-	if s.Right != nil {
-		n.Right = s.Right.Sample(rng)
-	}
+	n.Left = m.Sample(depth, next, rng)
+	n.Right = m.Sample(depth, next, rng)
 	return &n
 }
 
 // Samples generates multiple samples
-func (s *Source) Samples(rng *rand.Rand) Roots {
+func (m Markov) Samples(rng *rand.Rand) Roots {
 	root := Roots{}
-	for i := 0; i < 128; i++ {
+	for i := 0; i < 1024; i++ {
 		root = append(root, Root{
-			Root: s.Sample(rng),
+			Root: m.Sample(5, State{}, rng),
 		})
 	}
 	return root
 }
 
 // Reset resets a source
-func (s *Source) Reset() {
-	s.OperationCount = 0
-	for i := range s.OperationSum {
-		s.OperationSum[i] = 0
-	}
-	for i := range s.OperationVariance {
-		s.OperationVariance[i] = 0
-	}
-	s.ValueCount = 0
-	for i := range s.ValueSum {
-		s.ValueSum[i] = 0
-	}
-	for i := range s.ValueVariance {
-		s.ValueVariance[i] = 0
-	}
-	if s.Left != nil {
-		s.Left.Reset()
-	}
-	if s.Right != nil {
-		s.Right.Reset()
+func (m Markov) Reset() {
+	for _, s := range m {
+		s.OperationCount = 0
+		for i := range s.OperationSum {
+			s.OperationSum[i] = 0
+		}
+		for i := range s.OperationVariance {
+			s.OperationVariance[i] = 0
+		}
+		s.ValueCount = 0
+		for i := range s.ValueSum {
+			s.ValueSum[i] = 0
+		}
+		for i := range s.ValueVariance {
+			s.ValueVariance[i] = 0
+		}
 	}
 }
 
 // Statistics computes the statistics of Roots
-func (r Roots) Statistics(s *Source) {
-	s.Reset()
-	var sum func(*Source, *Node)
-	sum = func(s *Source, n *Node) {
+func (r Roots) Statistics(m Markov) {
+	m.Reset()
+	var sum func(State, Markov, *Node)
+	sum = func(state State, m Markov, n *Node) {
+		s := m[state]
 		s.OperationCount++
 		for i := range s.OperationSum {
 			s.OperationSum[i] += n.OperationSample[i]
@@ -240,38 +249,44 @@ func (r Roots) Statistics(s *Source) {
 		for i := range s.ValueSum {
 			s.ValueSum[i] += n.ValueSample[i]
 		}
-		if s.Left != nil && n.Left != nil {
-			sum(s.Left, n.Left)
+		next := state
+		next[0], next[1] = byte(n.Operation), next[0]
+		if n.Left != nil {
+			sum(next, m, n.Left)
 		}
-		if s.Right != nil && n.Right != nil {
-			sum(s.Right, n.Right)
+		if n.Right != nil {
+			sum(next, m, n.Right)
 		}
 	}
 	for _, v := range r {
-		sum(s, v.Root)
+		sum(State{}, m, v.Root)
 	}
 
-	var avg func(*Source, *Node)
-	avg = func(s *Source, n *Node) {
+	var avg func(State, Markov, *Node)
+	avg = func(state State, m Markov, n *Node) {
+		s := m[state]
 		for i := range s.OperationSum {
 			s.Operation[i].Mean = s.OperationSum[i] / s.OperationCount
 		}
 		for i := range s.ValueSum {
 			s.Value[i].Mean = s.ValueSum[i] / s.ValueCount
 		}
-		if s.Left != nil && n.Left != nil {
-			avg(s.Left, n.Left)
+		next := state
+		next[0], next[1] = byte(n.Operation), next[0]
+		if n.Left != nil {
+			avg(next, m, n.Left)
 		}
-		if s.Right != nil && n.Right != nil {
-			avg(s.Right, n.Right)
+		if n.Right != nil {
+			avg(next, m, n.Right)
 		}
 	}
 	for _, v := range r {
-		avg(s, v.Root)
+		avg(State{}, m, v.Root)
 	}
 
-	var variance func(*Source, *Node)
-	variance = func(s *Source, n *Node) {
+	var variance func(State, Markov, *Node)
+	variance = func(state State, m Markov, n *Node) {
+		s := m[state]
 		for i := range s.Operation {
 			diff := s.Operation[i].Mean - n.OperationSample[i]
 			s.OperationVariance[i] += diff * diff
@@ -280,34 +295,39 @@ func (r Roots) Statistics(s *Source) {
 			diff := s.Value[i].Mean - n.ValueSample[i]
 			s.ValueVariance[i] = diff * diff
 		}
-		if s.Left != nil && n.Left != nil {
-			variance(s.Left, n.Left)
+		next := state
+		next[0], next[1] = byte(n.Operation), next[0]
+		if n.Left != nil {
+			variance(next, m, n.Left)
 		}
-		if s.Right != nil && n.Right != nil {
-			variance(s.Right, n.Right)
+		if n.Right != nil {
+			variance(next, m, n.Right)
 		}
 	}
 	for _, v := range r {
-		variance(s, v.Root)
+		variance(State{}, m, v.Root)
 	}
 
-	var stddev func(*Source, *Node)
-	stddev = func(s *Source, n *Node) {
+	var stddev func(State, Markov, *Node)
+	stddev = func(state State, m Markov, n *Node) {
+		s := m[state]
 		for i := range s.Operation {
 			s.Operation[i].Stddev = math.Sqrt(s.OperationVariance[i] / s.OperationCount)
 		}
 		for i := range s.Value {
 			s.Value[i].Stddev = math.Sqrt(s.ValueVariance[i] / s.ValueCount)
 		}
-		if s.Left != nil && n.Left != nil {
-			stddev(s.Left, n.Left)
+		next := state
+		next[0], next[1] = byte(n.Operation), next[0]
+		if n.Left != nil {
+			stddev(next, m, n.Left)
 		}
-		if s.Right != nil && n.Right != nil {
-			stddev(s.Right, n.Right)
+		if n.Right != nil {
+			stddev(next, m, n.Right)
 		}
 	}
 	for _, v := range r {
-		stddev(s, v.Root)
+		stddev(State{}, m, v.Root)
 	}
 }
 
