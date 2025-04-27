@@ -265,11 +265,13 @@ func (r Roots) Statistics(m Markov) {
 	var avg func(State, Markov, *Node)
 	avg = func(state State, m Markov, n *Node) {
 		s := m[state]
-		for i := range s.OperationSum {
-			s.Operation[i].Mean = s.OperationSum[i] / s.OperationCount
-		}
-		for i := range s.ValueSum {
-			s.Value[i].Mean = s.ValueSum[i] / s.ValueCount
+		if s.OperationCount > 2 && s.ValueCount > 2 {
+			for i := range s.OperationSum {
+				s.Operation[i].Mean = s.OperationSum[i] / s.OperationCount
+			}
+			for i := range s.ValueSum {
+				s.Value[i].Mean = s.ValueSum[i] / s.ValueCount
+			}
 		}
 		next := state
 		next[0], next[1] = byte(n.Operation), next[0]
@@ -287,13 +289,15 @@ func (r Roots) Statistics(m Markov) {
 	var variance func(State, Markov, *Node)
 	variance = func(state State, m Markov, n *Node) {
 		s := m[state]
-		for i := range s.Operation {
-			diff := s.Operation[i].Mean - n.OperationSample[i]
-			s.OperationVariance[i] += diff * diff
-		}
-		for i := range s.Value {
-			diff := s.Value[i].Mean - n.ValueSample[i]
-			s.ValueVariance[i] = diff * diff
+		if s.OperationCount > 2 && s.ValueCount > 2 {
+			for i := range s.Operation {
+				diff := s.Operation[i].Mean - n.OperationSample[i]
+				s.OperationVariance[i] += diff * diff
+			}
+			for i := range s.Value {
+				diff := s.Value[i].Mean - n.ValueSample[i]
+				s.ValueVariance[i] = diff * diff
+			}
 		}
 		next := state
 		next[0], next[1] = byte(n.Operation), next[0]
@@ -311,11 +315,13 @@ func (r Roots) Statistics(m Markov) {
 	var stddev func(State, Markov, *Node)
 	stddev = func(state State, m Markov, n *Node) {
 		s := m[state]
-		for i := range s.Operation {
-			s.Operation[i].Stddev = math.Sqrt(s.OperationVariance[i] / s.OperationCount)
-		}
-		for i := range s.Value {
-			s.Value[i].Stddev = math.Sqrt(s.ValueVariance[i] / s.ValueCount)
+		if s.OperationCount > 2 && s.ValueCount > 2 {
+			for i := range s.Operation {
+				s.Operation[i].Stddev = math.Sqrt(s.OperationVariance[i] / s.OperationCount)
+			}
+			for i := range s.Value {
+				s.Value[i].Stddev = math.Sqrt(s.ValueVariance[i] / s.ValueCount)
+			}
 		}
 		next := state
 		next[0], next[1] = byte(n.Operation), next[0]
