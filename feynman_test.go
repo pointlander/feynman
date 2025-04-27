@@ -193,7 +193,7 @@ func TestSource(t *testing.T) {
 }
 
 func TestNewMode(t *testing.T) {
-	rng := rand.New(rand.NewSource(3))
+	rng := rand.New(rand.NewSource(1))
 	expression := "4*x^3"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
@@ -215,9 +215,11 @@ func TestNewMode(t *testing.T) {
 				bb := b.Calculate(z)
 				diff := aa - bb
 				if math.IsInf(diff, 0) || math.IsNaN(diff) {
-					diff = 1337.0
+					r[j].Fitness = math.Inf(1)
 				}
-				r[j].Fitness += diff * diff
+				if !(math.IsInf(r[j].Fitness, 0) || math.IsNaN(r[j].Fitness)) {
+					r[j].Fitness += diff * diff
+				}
 			}
 		}
 		sort.Slice(r, func(i, j int) bool {
