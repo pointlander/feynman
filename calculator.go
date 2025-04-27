@@ -194,11 +194,11 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 	}
 	n.Value = float64(value)
 	n.Variable = "x"
-	next := state
-	next[0], next[1] = byte(operation), next[0]
-	if depth == 0 {
+	if depth == 0 || operation == OperationVariable || operation == OperationNumber {
 		return &n
 	}
+	next := state
+	next[0], next[1] = byte(operation), next[0]
 	n.Left = m.Sample(depth, next, rng)
 	n.Right = m.Sample(depth, next, rng)
 	return &n

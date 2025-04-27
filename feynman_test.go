@@ -193,7 +193,7 @@ func TestSource(t *testing.T) {
 }
 
 func TestNewMode(t *testing.T) {
-	rng := rand.New(rand.NewSource(1))
+	rng := rand.New(rand.NewSource(2))
 	expression := "4*x^3"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
