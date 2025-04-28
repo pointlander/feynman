@@ -206,6 +206,7 @@ func TestNewMode(t *testing.T) {
 	seed := 1
 outer:
 	for {
+		t.Log("----------------------------------------------")
 		rng := rand.New(rand.NewSource(int64(seed)))
 		s := NewSource()
 		last := ""
@@ -245,6 +246,48 @@ outer:
 				index++
 			}
 			r = r[:index]
+			if index > 0 {
+				count, sum := 0.0, 0.0
+				for _, v := range r {
+					count++
+					sum += v.Fitness
+				}
+				average := sum / count
+				variance := 0.0
+				for _, v := range r {
+					diff := average - v.Fitness
+					variance += diff * diff
+				}
+				variance /= float64(len(r))
+				max, cut := 0.0, 0
+				for i := 1; i < len(r)-1; i++ {
+					avga, avgb := 0.0, 0.0
+					vara, varb := 0.0, 0.0
+					for j := 0; j < i; j++ {
+						avga += r[j].Fitness
+					}
+					avga /= float64(i)
+					for j := 0; j < i; j++ {
+						diff := r[j].Fitness - avga
+						vara += diff * diff
+					}
+					vara /= float64(i)
+					for j := i; j < len(r); j++ {
+						avgb += r[j].Fitness
+					}
+					avgb /= float64(len(r) - i)
+					for j := i; j < len(r); j++ {
+						diff := r[j].Fitness - avgb
+						varb += diff * diff
+					}
+					varb /= float64(len(r) - i)
+					reduction := variance - (vara + varb)
+					if reduction > max {
+						max, cut = reduction, i
+					}
+				}
+				r = r[:cut]
+			}
 			r.Statistics(s)
 		}
 		seed++
