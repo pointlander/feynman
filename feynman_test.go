@@ -234,7 +234,7 @@ outer:
 				break
 			}
 			last = r[0].Root.String()
-			t.Log(r[0].Fitness, r[0].Root.String())
+			t.Log(r[0].Fitness, r[0].Root.Simplify().String())
 			if r[0].Fitness == 0 {
 				break outer
 			}

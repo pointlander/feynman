@@ -926,6 +926,244 @@ func (n *Node) Derivative() *Node {
 	return process(n)
 }
 
+var numeric = map[Operation]bool{
+	OperationNumber:    true,
+	OperationImaginary: true,
+	OperationNotation:  true,
+}
+
+func isNumeric(operation Operation) bool {
+	return numeric[operation]
+}
+
+// Simplify simplifies an expression
+func (n *Node) Simplify() *Node {
+	var process func(n *Node) *Node
+	process = func(n *Node) *Node {
+		if n == nil {
+			return nil
+		}
+		switch n.Operation {
+		case OperationNoop:
+			return n
+		case OperationAdd:
+			left, right := process(n.Left), process(n.Right)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				return right
+			} else if isNumeric(right.Operation) && right.Equals(0) {
+				return left
+			}
+			a := &Node{
+				Operation: OperationAdd,
+				Left:      left,
+				Right:     right,
+			}
+			return a
+		case OperationSubtract:
+			left, right := process(n.Left), process(n.Right)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				a := &Node{
+					Operation: OperationNegate,
+					Left:      right,
+				}
+				return a
+			} else if isNumeric(right.Operation) && right.Equals(0) {
+				return left
+			}
+			a := &Node{
+				Operation: OperationSubtract,
+				Left:      left,
+				Right:     right,
+			}
+			return a
+		case OperationMultiply:
+			left, right := process(n.Left), process(n.Right)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     0.0,
+				}
+				return a
+			} else if isNumeric(right.Operation) && right.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     0.0,
+				}
+				return a
+			} else if isNumeric(left.Operation) && left.Equals(1) {
+				return right
+			} else if isNumeric(right.Operation) && right.Equals(1) {
+				return left
+			}
+			a := &Node{
+				Operation: OperationMultiply,
+				Left:      left,
+				Right:     right,
+			}
+			return a
+		case OperationDivide:
+			left, right := process(n.Left), process(n.Right)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     0.0,
+				}
+				return a
+			} else if isNumeric(right.Operation) && right.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     math.Inf(1),
+				}
+				return a
+			} else if isNumeric(right.Operation) && right.Equals(1) {
+				return left
+			}
+			a := &Node{
+				Operation: OperationDivide,
+				Left:      left,
+				Right:     right,
+			}
+			return a
+		case OperationModulus:
+			left, right := process(n.Left), process(n.Right)
+			if isNumeric(right.Operation) && right.Equals(1) {
+				return left
+			}
+			a := &Node{
+				Operation: OperationModulus,
+				Left:      left,
+				Right:     right,
+			}
+			return a
+		case OperationExponentiation:
+			left, right := process(n.Left), process(n.Right)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     0.0,
+				}
+				return a
+			} else if isNumeric(right.Operation) && right.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     1.0,
+				}
+				return a
+			} else if isNumeric(left.Operation) && left.Equals(1) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     1.0,
+				}
+				return a
+			} else if isNumeric(right.Operation) && right.Equals(1) {
+				return left
+			}
+			a := &Node{
+				Operation: OperationExponentiation,
+				Left:      left,
+				Right:     right,
+			}
+			return a
+		case OperationNegate:
+			left := process(n.Left)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     0.0,
+				}
+				return a
+			}
+			a := &Node{
+				Operation: OperationNegate,
+				Left:      left,
+			}
+			return a
+		case OperationVariable:
+			return n
+		case OperationImaginary:
+			return n
+		case OperationNumber:
+			return n
+		case OperationNotation:
+			return n
+		case OperationNaturalExponentiation:
+			left := process(n.Left)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     1.0,
+				}
+				return a
+			} else if isNumeric(left.Operation) && left.Equals(1) {
+				a := &Node{
+					Operation: OperationVariable,
+					Value:     math.E,
+				}
+				return a
+			}
+			a := &Node{
+				Operation: OperationNaturalExponentiation,
+				Left:      left,
+			}
+			return a
+		case OperationNatural:
+			return n
+		case OperationPI:
+			return n
+		case OperationNaturalLogarithm:
+			left := process(n.Left)
+			if left.Operation == OperationNatural {
+				return left
+			}
+			a := &Node{
+				Operation: OperationNaturalLogarithm,
+				Left:      left,
+			}
+			return a
+		case OperationSquareRoot:
+			left := process(n.Left)
+			if isNumeric(left.Operation) && left.Equals(0) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     0.0,
+				}
+				return a
+			} else if isNumeric(left.Operation) && left.Equals(1) {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     1.0,
+				}
+				return a
+			}
+			a := &Node{
+				Operation: OperationSquareRoot,
+				Left:      left,
+			}
+			return a
+		case OperationCosine:
+			a := &Node{
+				Operation: OperationCosine,
+				Left:      process(n.Left),
+			}
+			return a
+		case OperationSine:
+			a := &Node{
+				Operation: OperationSine,
+				Left:      process(n.Left),
+			}
+			return a
+		case OperationTangent:
+			a := &Node{
+				Operation: OperationTangent,
+				Left:      process(n.Left),
+			}
+			return a
+		}
+		return nil
+	}
+	return process(n)
+}
+
 func (n *Node) Calculate(x float64) float64 {
 	var a float64
 	switch n.Operation {
@@ -947,6 +1185,21 @@ func (n *Node) Calculate(x float64) float64 {
 		a = math.Pow(n.Left.Calculate(x), n.Right.Calculate(x))
 	}
 	return a
+}
+
+// Equals test if value is equal to x
+func (n *Node) Equals(x int64) bool {
+	/*if n.Operation == OperationNotation {
+		a := big.NewInt(0)
+		a.SetString(n.Left.Value, 10)
+		b := big.NewInt(10)
+		c := big.NewInt(0)
+		c.SetString(n.Right.Value, 10)
+		b.Exp(b, c, nil)
+		a.Mul(a, b)
+		return a.Cmp(big.NewInt(x)) == 0
+	}*/
+	return n.Value == float64(x)
 }
 
 // String returns the string form of the equation
