@@ -215,7 +215,7 @@ outer:
 			for j, v := range r {
 				b := v.Root.Derivative()
 				for k := 0; k < 256; k++ {
-					z := float64(rng.Intn(256) + 1)
+					z := float64(k + 1)
 					aa := a.Calculate(z)
 					bb := b.Calculate(z)
 					diff := aa - bb
