@@ -62,16 +62,21 @@ const (
 	OperationNotation
 )
 
+// Value is a value
+type Value struct {
+	ValueCount    float64
+	ValueSum      [2]float64
+	ValueVariance [2]float64
+	Value         [2]Gaussian
+}
+
 // Source is the source of nodes
 type Source struct {
 	OperationCount    float64
 	OperationSum      [4]float64
 	OperationVariance [4]float64
 	Operation         [4]Gaussian
-	ValueCount        float64
-	ValueSum          [8]float64
-	ValueVariance     [8]float64
-	Value             [8]Gaussian
+	Value             map[State]*Value
 }
 
 // State is a markov state
@@ -84,7 +89,7 @@ type Markov map[State]*Source
 type Node struct {
 	OperationSample [4]float64
 	Operation       Operation
-	ValueSample     [8]float64
+	ValueSample     [64][2]float64
 	Value           float64
 	Variable        string
 	Left            *Node
@@ -140,8 +145,15 @@ func NewSource() Markov {
 			for i := range s.Operation {
 				s.Operation[i].Stddev = 1
 			}
-			for i := range s.Value {
-				s.Value[i].Stddev = 1
+			s.Value = make(map[State]*Value, 3*3)
+			for i := 0; i < 3; i++ {
+				for j := 0; j < 3; j++ {
+					value := Value{}
+					for k := range value.Value {
+						value.Value[k].Stddev = 1
+					}
+					s.Value[State{byte(i), byte(j)}] = &value
+				}
 			}
 			source[State{byte(x), byte(y)}] = &s
 		}
@@ -177,20 +189,31 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 		operation = Operation(0)
 	}
 	n.Operation = operation
-	value := byte(0)
-	for {
-		for i := range m[state].Value {
-			value <<= 1
-			sample := rng.NormFloat64()*m[state].Value[i].Stddev + m[state].Value[i].Mean
-			if sample > 0 {
-				value |= 1
+	value, ss := uint64(0), State{}
+	for b := 0; b < 64; b++ {
+		bits := 0
+		for {
+			for i := range m[state].Value[ss].Value {
+				bits <<= 1
+				sample := rng.NormFloat64()*m[state].Value[ss].Value[i].Stddev + m[state].Value[ss].Value[i].Mean
+				if sample > 0 {
+					bits |= 1
+				}
+				n.ValueSample[b][i] = sample
 			}
-			n.ValueSample[i] = sample
+			if bits < 3 {
+				break
+			}
+			bits = 0
 		}
-		if value < 8 {
+		ss[0], ss[1] = byte(bits), ss[0]
+		if bits == 2 {
 			break
 		}
-		value = byte(0)
+		value <<= 1
+		if bits == 1 {
+			value |= 1
+		}
 	}
 	n.Value = float64(value)
 	n.Variable = "x"
@@ -225,12 +248,14 @@ func (m Markov) Reset() {
 		for i := range s.OperationVariance {
 			s.OperationVariance[i] = 0
 		}
-		s.ValueCount = 0
-		for i := range s.ValueSum {
-			s.ValueSum[i] = 0
-		}
-		for i := range s.ValueVariance {
-			s.ValueVariance[i] = 0
+		for _, s := range s.Value {
+			s.ValueCount = 0
+			for i := range s.ValueSum {
+				s.ValueSum[i] = 0
+			}
+			for i := range s.ValueVariance {
+				s.ValueVariance[i] = 0
+			}
 		}
 	}
 }
@@ -245,9 +270,22 @@ func (r Roots) Statistics(m Markov) {
 		for i := range s.OperationSum {
 			s.OperationSum[i] += n.OperationSample[i]
 		}
-		s.ValueCount++
-		for i := range s.ValueSum {
-			s.ValueSum[i] += n.ValueSample[i]
+		ss := State{}
+		s.Value[ss].ValueCount++
+	outer:
+		for i := range n.ValueSample {
+			bits := 0
+			for j := range s.Value[ss].ValueSum {
+				bits <<= 1
+				s.Value[ss].ValueSum[j] += n.ValueSample[i][j]
+				if n.ValueSample[i][j] > 0 {
+					bits |= 1
+				}
+			}
+			if bits == 2 {
+				break outer
+			}
+			ss[0], ss[1] = byte(bits), ss[0]
 		}
 		next := state
 		next[0], next[1] = byte(n.Operation), next[0]
@@ -265,14 +303,31 @@ func (r Roots) Statistics(m Markov) {
 	var avg func(State, Markov, *Node)
 	avg = func(state State, m Markov, n *Node) {
 		s := m[state]
-		if s.OperationCount > 2 && s.ValueCount > 2 {
+		if s.OperationCount > 2 {
 			for i := range s.OperationSum {
 				s.Operation[i].Mean = s.OperationSum[i] / s.OperationCount
 			}
-			for i := range s.ValueSum {
-				s.Value[i].Mean = s.ValueSum[i] / s.ValueCount
+		}
+		ss := State{}
+	outer:
+		for i := range n.ValueSample {
+			s := s.Value[ss]
+			if s.ValueCount > 2 {
+				bits := 0
+				for j := range s.ValueSum {
+					bits <<= 1
+					s.Value[j].Mean = s.ValueSum[j] / s.ValueCount
+					if n.ValueSample[i][j] > 0 {
+						bits |= 1
+					}
+				}
+				if bits == 2 {
+					break outer
+				}
+				ss[0], ss[1] = byte(bits), ss[0]
 			}
 		}
+
 		next := state
 		next[0], next[1] = byte(n.Operation), next[0]
 		if n.Left != nil {
@@ -289,14 +344,30 @@ func (r Roots) Statistics(m Markov) {
 	var variance func(State, Markov, *Node)
 	variance = func(state State, m Markov, n *Node) {
 		s := m[state]
-		if s.OperationCount > 2 && s.ValueCount > 2 {
+		if s.OperationCount > 2 {
 			for i := range s.Operation {
 				diff := s.Operation[i].Mean - n.OperationSample[i]
 				s.OperationVariance[i] += diff * diff
 			}
-			for i := range s.Value {
-				diff := s.Value[i].Mean - n.ValueSample[i]
-				s.ValueVariance[i] = diff * diff
+		}
+		ss := State{}
+	outer:
+		for i := range n.ValueSample {
+			s := s.Value[ss]
+			if s.ValueCount > 2 {
+				bits := 0
+				for j := range s.Value {
+					bits <<= 1
+					diff := s.Value[j].Mean - n.ValueSample[i][j]
+					s.ValueVariance[j] = diff * diff
+					if n.ValueSample[i][j] > 0 {
+						bits |= 1
+					}
+				}
+				if bits == 2 {
+					break outer
+				}
+				ss[0], ss[1] = byte(bits), ss[0]
 			}
 		}
 		next := state
@@ -315,12 +386,28 @@ func (r Roots) Statistics(m Markov) {
 	var stddev func(State, Markov, *Node)
 	stddev = func(state State, m Markov, n *Node) {
 		s := m[state]
-		if s.OperationCount > 2 && s.ValueCount > 2 {
+		if s.OperationCount > 2 {
 			for i := range s.Operation {
 				s.Operation[i].Stddev = math.Sqrt(s.OperationVariance[i] / s.OperationCount)
 			}
-			for i := range s.Value {
-				s.Value[i].Stddev = math.Sqrt(s.ValueVariance[i] / s.ValueCount)
+		}
+		ss := State{}
+	outer:
+		for i := range n.ValueSample {
+			s := s.Value[ss]
+			if s.ValueCount > 2 {
+				bits := 0
+				for j := range s.Value {
+					bits <<= 1
+					s.Value[j].Stddev = math.Sqrt(s.ValueVariance[j] / s.ValueCount)
+					if n.ValueSample[i][j] > 0 {
+						bits |= 1
+					}
+				}
+				if bits == 2 {
+					break outer
+				}
+				ss[0], ss[1] = byte(bits), ss[0]
 			}
 		}
 		next := state
