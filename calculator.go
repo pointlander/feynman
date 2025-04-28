@@ -131,8 +131,8 @@ type G struct {
 	Right *G
 }
 
-// NewSource creates a new source tree
-func NewSource(depth int) Markov {
+// NewSource creates a new source markov model
+func NewSource() Markov {
 	source := make(Markov, Width*Width)
 	for x := 0; x < Width; x++ {
 		for y := 0; y < Width; y++ {
@@ -205,11 +205,11 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 }
 
 // Samples generates multiple samples
-func (m Markov) Samples(rng *rand.Rand) Roots {
+func (m Markov) Samples(depth int, rng *rand.Rand) Roots {
 	root := Roots{}
 	for i := 0; i < 1024; i++ {
 		root = append(root, Root{
-			Root: m.Sample(5, State{}, rng),
+			Root: m.Sample(depth, State{}, rng),
 		})
 	}
 	return root

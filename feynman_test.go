@@ -184,8 +184,8 @@ func TestDerivative(t *testing.T) {
 
 func TestSource(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
-	s := NewSource(5)
-	r := s.Samples(rng)
+	s := NewSource()
+	r := s.Samples(5, rng)
 	for _, v := range r {
 		v.Root.Calculate(1)
 	}
@@ -193,8 +193,7 @@ func TestSource(t *testing.T) {
 }
 
 func TestNewMode(t *testing.T) {
-	rng := rand.New(rand.NewSource(1))
-	expression := "4*x^3"
+	expression := "4*x^3 + 2*x"
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -204,32 +203,50 @@ func TestNewMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := calc.Tree()
-	s := NewSource(5)
-	for i := 0; i < 1024; i++ {
-		r := s.Samples(rng)
-		for j, v := range r {
-			b := v.Root.Derivative()
-			for k := 0; k < 256; k++ {
-				z := float64(rng.Intn(256) + 1)
-				aa := a.Calculate(z)
-				bb := b.Calculate(z)
-				diff := aa - bb
-				if math.IsInf(diff, 0) || math.IsNaN(diff) {
-					r[j].Fitness = math.Inf(1)
-				}
-				if !(math.IsInf(r[j].Fitness, 0) || math.IsNaN(r[j].Fitness)) {
-					r[j].Fitness += diff * diff
+	seed := 1
+outer:
+	for {
+		rng := rand.New(rand.NewSource(int64(seed)))
+		s := NewSource()
+		last := ""
+		for {
+			r := s.Samples(5, rng)
+			for j, v := range r {
+				b := v.Root.Derivative()
+				for k := 0; k < 256; k++ {
+					z := float64(rng.Intn(256) + 1)
+					aa := a.Calculate(z)
+					bb := b.Calculate(z)
+					diff := aa - bb
+					if math.IsInf(diff, 0) || math.IsNaN(diff) {
+						r[j].Fitness = math.Inf(1)
+					}
+					if !(math.IsInf(r[j].Fitness, 0) || math.IsNaN(r[j].Fitness)) {
+						r[j].Fitness += diff * diff
+					}
 				}
 			}
+			sort.Slice(r, func(i, j int) bool {
+				return r[i].Fitness < r[j].Fitness
+			})
+			if last == r[0].Root.String() {
+				break
+			}
+			last = r[0].Root.String()
+			t.Log(r[0].Fitness, r[0].Root.String())
+			if r[0].Fitness == 0 {
+				break outer
+			}
+			index := 0
+			for _, v := range r {
+				if math.IsInf(v.Fitness, 0) {
+					break
+				}
+				index++
+			}
+			r = r[:index]
+			r.Statistics(s)
 		}
-		sort.Slice(r, func(i, j int) bool {
-			return r[i].Fitness < r[j].Fitness
-		})
-		t.Log(r[0].Fitness, r[0].Root.String())
-		if r[0].Fitness == 0 {
-			break
-		}
-		r = r[:32]
-		r.Statistics(s)
+		seed++
 	}
 }
