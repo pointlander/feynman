@@ -38,8 +38,6 @@ const (
 	OperationNumber
 	// OperationVariable is a variable
 	OperationVariable
-	// OperationModulus computes the modulus of two numbers
-	OperationModulus
 	// OperationImaginary is an imaginary number
 	OperationImaginary
 	// OperationNaturalExponentiation raises the natural number to a power
@@ -60,6 +58,8 @@ const (
 	OperationTangent
 	// OperationNotation is E notation operation
 	OperationNotation
+	// OperationModulus computes the modulus of two numbers
+	OperationModulus
 )
 
 // Value is a value
