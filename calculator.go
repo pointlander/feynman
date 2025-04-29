@@ -70,13 +70,16 @@ type Value struct {
 	Value         [2]Gaussian
 }
 
+// MarkvoValue is a markov model for value
+type MarkovValue map[State]*Value
+
 // Source is the source of nodes
 type Source struct {
 	OperationCount    float64
 	OperationSum      [4]float64
 	OperationVariance [4]float64
 	Operation         [4]Gaussian
-	Value             map[State]*Value
+	Value             MarkovValue
 }
 
 // State is a markov state
@@ -145,7 +148,7 @@ func NewSource() Markov {
 			for i := range s.Operation {
 				s.Operation[i].Stddev = 1
 			}
-			s.Value = make(map[State]*Value, 3*3)
+			s.Value = make(MarkovValue, 3*3)
 			for i := 0; i < 3; i++ {
 				for j := 0; j < 3; j++ {
 					value := Value{}
