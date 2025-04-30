@@ -198,6 +198,9 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 		n.Value = float64(value)
 	} else if operation == OperationVariable {
 		n.Variable = "x"
+	} else if operation == OperationPI {
+		n.Value = math.Pi
+		n.Variable = "pi"
 	}
 	if depth == 0 || operation == OperationVariable || operation == OperationNumber || operation == OperationPI {
 		return &n
