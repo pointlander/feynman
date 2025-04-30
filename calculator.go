@@ -70,6 +70,16 @@ const (
 	OperationModulus
 )
 
+// IsUnary returns if the operation is unary
+func (o Operation) IsUnary() bool {
+	return o == OperationCosine || o == OperationSine
+}
+
+// IsTerminal returns if the operation is terminal
+func (o Operation) IsTerminal() bool {
+	return o == OperationVariable || o == OperationNumber || o == OperationPI
+}
+
 // Gaussian is a gaussian
 type Gaussian struct {
 	Mean   float64
@@ -196,7 +206,7 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 				}
 				n.OperationSample[i] = sample
 			}
-			if operation == OperationVariable || operation == OperationNumber || operation == OperationPI {
+			if operation.IsTerminal() {
 				break
 			}
 			operation = Operation(0)
@@ -206,13 +216,13 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 			for {
 				for i := range m[state].Operation {
 					operation <<= 1
-					sample := rng.NormFloat64()*m[state].Operation[i].Stddev + m[state].Operation[i].Mean
+					sample := rng.NormFloat64()
 					if sample > 0 {
 						operation |= 1
 					}
 					n.OperationSample[i] = sample
 				}
-				if operation == OperationVariable || operation == OperationNumber || operation == OperationPI {
+				if operation.IsTerminal() {
 					break
 				}
 				operation = Operation(0)
@@ -254,13 +264,13 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 		n.Value = math.Pi
 		n.Variable = "pi"
 	}
-	if depth == 0 || operation == OperationVariable || operation == OperationNumber || operation == OperationPI {
+	if depth == 0 || operation.IsTerminal() {
 		return &n
 	}
 	next := state
 	next[0], next[1] = byte(operation), next[0]
 	n.Left = m.Sample(depth, next, rng)
-	if operation != OperationCosine && operation != OperationSine {
+	if !operation.IsUnary() {
 		n.Right = m.Sample(depth, next, rng)
 	}
 	return &n
