@@ -12,8 +12,16 @@ import (
 )
 
 const (
-	// Width is the number of random variables
-	Width = 9
+	// Operations is the number of operations
+	Operations = 9
+	// Values is the number of values
+	Values = 3
+	// Bits is the number of bits
+	Bits = 64
+	// OperationWidth is the number of operation distributions
+	OperationWidth = 4
+	// ValueWidth is the number of value distributions
+	ValueWidth = 2
 )
 
 // Operation is a mathematical operation
@@ -62,12 +70,18 @@ const (
 	OperationModulus
 )
 
+// Gaussian is a gaussian
+type Gaussian struct {
+	Mean   float64
+	Stddev float64
+}
+
 // Value is a value
 type Value struct {
 	ValueCount    float64
-	ValueSum      [2]float64
-	ValueVariance [2]float64
-	Value         [2]Gaussian
+	ValueSum      [ValueWidth]float64
+	ValueVariance [ValueWidth]float64
+	Value         [ValueWidth]Gaussian
 }
 
 // MarkvoValue is a markov model for value
@@ -76,9 +90,9 @@ type MarkovValue map[State]*Value
 // Source is the source of nodes
 type Source struct {
 	OperationCount    float64
-	OperationSum      [4]float64
-	OperationVariance [4]float64
-	Operation         [4]Gaussian
+	OperationSum      [OperationWidth]float64
+	OperationVariance [OperationWidth]float64
+	Operation         [OperationWidth]Gaussian
 	Value             MarkovValue
 }
 
@@ -90,9 +104,9 @@ type Markov map[State]*Source
 
 // Node is a node in an expression
 type Node struct {
-	OperationSample [4]float64
+	OperationSample [OperationWidth]float64
 	Operation       Operation
-	ValueSample     [64][2]float64
+	ValueSample     [Bits][ValueWidth]float64
 	Value           float64
 	Variable        string
 	Left            *Node
@@ -108,49 +122,18 @@ type Root struct {
 // Roots is a set of roots
 type Roots []Root
 
-// Sample is a sample
-type Sample struct {
-	Value []float64
-}
-
-// Set is a set of samples
-type Set struct {
-	Set     [Width]Sample
-	Fitness float64
-}
-
-// Samples is a set of samples
-type Samples struct {
-	Samples []Set
-	Left    *Samples
-	Right   *Samples
-}
-
-// Gaussian is a gaussian
-type Gaussian struct {
-	Mean   float64
-	Stddev float64
-}
-
-// G is a guassian set
-type G struct {
-	G     [Width]Gaussian
-	Left  *G
-	Right *G
-}
-
 // NewSource creates a new source markov model
 func NewSource() Markov {
-	source := make(Markov, Width*Width)
-	for x := 0; x < Width; x++ {
-		for y := 0; y < Width; y++ {
+	source := make(Markov, Operations*Operations)
+	for x := 0; x < Operations; x++ {
+		for y := 0; y < Operations; y++ {
 			s := Source{}
 			for i := range s.Operation {
 				s.Operation[i].Stddev = 1
 			}
-			s.Value = make(MarkovValue, 3*3)
-			for i := 0; i < 3; i++ {
-				for j := 0; j < 3; j++ {
+			s.Value = make(MarkovValue, Values*Values)
+			for i := 0; i < Values; i++ {
+				for j := 0; j < Values; j++ {
 					value := Value{}
 					for k := range value.Value {
 						value.Value[k].Stddev = 1
@@ -162,14 +145,6 @@ func NewSource() Markov {
 		}
 	}
 	return source
-}
-
-// NewGaussian makes a new gaussian distribution
-func NewGaussian() (g G) {
-	for i := range g.G {
-		g.G[i].Stddev = 1
-	}
-	return g
 }
 
 // Sample samples from the source
@@ -186,14 +161,15 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 			}
 			n.OperationSample[i] = sample
 		}
-		if (operation != Operation(state[0]) && operation != Operation(state[1]) && operation > 0 && operation < Width && depth != 0) || ((operation == OperationVariable || operation == OperationNumber) && depth == 0) {
+		if (operation != Operation(state[0]) && operation != Operation(state[1]) && operation > 0 && operation < Operations && depth != 0) ||
+			((operation == OperationVariable || operation == OperationNumber) && depth == 0) {
 			break
 		}
 		operation = Operation(0)
 	}
 	n.Operation = operation
 	value, ss := uint64(0), State{}
-	for b := 0; b < 64; b++ {
+	for b := range Bits {
 		bits := 0
 		for {
 			for i := range m[state].Value[ss].Value {
@@ -1075,16 +1051,6 @@ func (n *Node) Calculate(x float64) float64 {
 
 // Equals test if value is equal to x
 func (n *Node) Equals(x int64) bool {
-	/*if n.Operation == OperationNotation {
-		a := big.NewInt(0)
-		a.SetString(n.Left.Value, 10)
-		b := big.NewInt(10)
-		c := big.NewInt(0)
-		c.SetString(n.Right.Value, 10)
-		b.Exp(b, c, nil)
-		a.Mul(a, b)
-		return a.Cmp(big.NewInt(x)) == 0
-	}*/
 	return n.Value == float64(x)
 }
 
