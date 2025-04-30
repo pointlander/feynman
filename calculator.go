@@ -152,20 +152,72 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 	n := Node{}
 	depth--
 	operation := Operation(0)
-	for {
-		for i := range m[state].Operation {
-			operation <<= 1
-			sample := rng.NormFloat64()*m[state].Operation[i].Stddev + m[state].Operation[i].Mean
-			if sample > 0 {
-				operation |= 1
+	if depth != 0 {
+		shot := 0
+		for shot < 256 {
+			for i := range m[state].Operation {
+				operation <<= 1
+				sample := rng.NormFloat64()*m[state].Operation[i].Stddev + m[state].Operation[i].Mean
+				if sample > 0 {
+					operation |= 1
+				}
+				n.OperationSample[i] = sample
 			}
-			n.OperationSample[i] = sample
+			if (operation != Operation(state[0]) || operation != Operation(state[1])) && operation > 0 && operation < Operations {
+				break
+			}
+			operation = Operation(0)
+			shot++
 		}
-		if ((operation != Operation(state[0]) || operation != Operation(state[1])) && operation > 0 && operation < Operations && depth != 0) ||
-			((operation == OperationVariable || operation == OperationNumber || operation == OperationPI) && depth == 0) {
-			break
+		if shot == 256 {
+			for {
+				for i := range m[state].Operation {
+					operation <<= 1
+					sample := rng.NormFloat64()
+					if sample > 0 {
+						operation |= 1
+					}
+					n.OperationSample[i] = sample
+				}
+				if (operation != Operation(state[0]) || operation != Operation(state[1])) && operation > 0 && operation < Operations {
+					break
+				}
+				operation = Operation(0)
+			}
 		}
-		operation = Operation(0)
+	} else {
+		shot := 0
+		for shot < 256 {
+			for i := range m[state].Operation {
+				operation <<= 1
+				sample := rng.NormFloat64()*m[state].Operation[i].Stddev + m[state].Operation[i].Mean
+				if sample > 0 {
+					operation |= 1
+				}
+				n.OperationSample[i] = sample
+			}
+			if operation == OperationVariable || operation == OperationNumber || operation == OperationPI {
+				break
+			}
+			operation = Operation(0)
+			shot++
+		}
+		if shot == 256 {
+			for {
+				for i := range m[state].Operation {
+					operation <<= 1
+					sample := rng.NormFloat64()*m[state].Operation[i].Stddev + m[state].Operation[i].Mean
+					if sample > 0 {
+						operation |= 1
+					}
+					n.OperationSample[i] = sample
+				}
+				if operation == OperationVariable || operation == OperationNumber || operation == OperationPI {
+					break
+				}
+				operation = Operation(0)
+			}
+		}
 	}
 	n.Operation = operation
 	if operation == OperationNumber {
