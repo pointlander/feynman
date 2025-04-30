@@ -13,7 +13,7 @@ import (
 
 const (
 	// Operations is the number of operations
-	Operations = 9
+	Operations = 12
 	// Values is the number of values
 	Values = 3
 	// Bits is the number of bits
@@ -40,28 +40,28 @@ const (
 	OperationDivide
 	// OperationExponentiation raises a number to a number
 	OperationExponentiation
+	// OperationCosine computes the cosine of a number
+	OperationCosine
+	// OperationSine computes the sine of a number
+	OperationSine
 	// OperationNegate changes the sign of a number
 	OperationNegate
 	// OperationNumber is a real number
 	OperationNumber
 	// OperationVariable is a variable
 	OperationVariable
+	// OperationPI is the constant pi
+	OperationPI
 	// OperationImaginary is an imaginary number
 	OperationImaginary
 	// OperationNaturalExponentiation raises the natural number to a power
 	OperationNaturalExponentiation
 	// OperationNatural is the constant e
 	OperationNatural
-	// OperationPI is the constant pi
-	OperationPI
 	// OperationNaturalLogarithm os the natural logarithm
 	OperationNaturalLogarithm
 	// OperationSquareRoot computes the square root of a number
 	OperationSquareRoot
-	// OperationCosine computes the cosine of a number
-	OperationCosine
-	// OperationSine computes the sine of a number
-	OperationSine
 	// OperationTangent computes the tangent of a number
 	OperationTangent
 	// OperationNotation is E notation operation
@@ -523,8 +523,42 @@ func (c *Calculator[U]) Rulee4(node *node[U]) *Node {
 				return e
 			}
 			return c.Rulevalue(node)
+		case rulecos:
+			a := &Node{}
+			a.Operation = OperationCosine
+			a.Left = c.Rulecos(node)
+			return a
+		case rulesin:
+			a := &Node{}
+			a.Operation = OperationSine
+			a.Left = c.Rulesin(node)
+			return a
 		case ruleminus:
 			minus = true
+		}
+		node = node.next
+	}
+	return nil
+}
+
+func (c *Calculator[U]) Rulecos(node *node[U]) *Node {
+	node = node.up
+	for node != nil {
+		switch node.pegRule {
+		case rulesub:
+			return c.Rulesub(node)
+		}
+		node = node.next
+	}
+	return nil
+}
+
+func (c *Calculator[U]) Rulesin(node *node[U]) *Node {
+	node = node.up
+	for node != nil {
+		switch node.pegRule {
+		case rulesub:
+			return c.Rulesub(node)
 		}
 		node = node.next
 	}
@@ -548,6 +582,12 @@ func (c *Calculator[U]) Rulevalue(node *node[U]) *Node {
 			a := &Node{}
 			a.Operation = OperationVariable
 			a.Variable = string(c.buffer[node.begin:node.end])
+			return a
+		case rulepi:
+			a := &Node{}
+			a.Operation = OperationPI
+			a.Variable = "pi"
+			a.Value = math.Pi
 			return a
 		case rulesub:
 			return c.Rulesub(node)
@@ -1043,6 +1083,8 @@ func (n *Node) Calculate(x float64) float64 {
 		a = n.Value
 	case OperationVariable:
 		a = x
+	case OperationPI:
+		a = n.Value
 	case OperationNegate:
 		a = -n.Left.Calculate(x)
 	case OperationAdd:
@@ -1055,6 +1097,10 @@ func (n *Node) Calculate(x float64) float64 {
 		a = n.Left.Calculate(x) / n.Right.Calculate(x)
 	case OperationExponentiation:
 		a = math.Pow(n.Left.Calculate(x), n.Right.Calculate(x))
+	case OperationCosine:
+		a = math.Cos(n.Left.Calculate(x))
+	case OperationSine:
+		a = math.Sin(n.Left.Calculate(x))
 	}
 	return a
 }

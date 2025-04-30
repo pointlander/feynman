@@ -25,6 +25,40 @@ func TestCalculate(t *testing.T) {
 	}
 }
 
+func TestSin(t *testing.T) {
+	expression := "sin(pi)"
+	calc := &Calculator[uint32]{Buffer: expression}
+	err := calc.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := calc.Parse(); err != nil {
+		t.Fatal(err)
+	}
+	result := calc.Tree().Calculate(1.0)
+	if result > 1e-10 {
+		t.Log(calc.Tree().String())
+		t.Fatal("got incorrect result", result)
+	}
+}
+
+func TestCos(t *testing.T) {
+	expression := "cos(pi)"
+	calc := &Calculator[uint32]{Buffer: expression}
+	err := calc.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := calc.Parse(); err != nil {
+		t.Fatal(err)
+	}
+	result := calc.Tree().Calculate(1.0)
+	if result != -1 {
+		t.Log(calc.Tree().String())
+		t.Fatal("got incorrect result", result)
+	}
+}
+
 func TestString(t *testing.T) {
 	expression := "(((1 - -(3)) / 3) + (2 * (3 + -(4))))"
 	calc := &Calculator[uint32]{Buffer: expression}

@@ -18,8 +18,11 @@ e2 <- e3 ( multiply e3
 e3 <- e4 ( exponentiation e4
          )*
 e4 <- minus+ value
+	/ cos
+	/ sin
     / value
 value <- number
+       / pi
        / variable
        / sub
 number <-[0-9]+ sp
@@ -31,6 +34,9 @@ multiply <- '*' sp
 divide <- '/' sp
 modulus <- '%' sp
 exponentiation <- '^' sp
+cos <- 'cos' sub sp
+sin <- 'sin' sub sp
+pi <- 'pi' sp
 open <- '(' sp
 close <- ')' sp
 sp <- ( ' ' / '\t' )*
