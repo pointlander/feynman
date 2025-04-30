@@ -162,7 +162,7 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 			n.OperationSample[i] = sample
 		}
 		if (operation != Operation(state[0]) && operation != Operation(state[1]) && operation > 0 && operation < Operations && depth != 0) ||
-			((operation == OperationVariable || operation == OperationNumber) && depth == 0) {
+			((operation == OperationVariable || operation == OperationNumber || operation == OperationPI) && depth == 0) {
 			break
 		}
 		operation = Operation(0)
@@ -199,13 +199,15 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 	} else if operation == OperationVariable {
 		n.Variable = "x"
 	}
-	if depth == 0 || operation == OperationVariable || operation == OperationNumber {
+	if depth == 0 || operation == OperationVariable || operation == OperationNumber || operation == OperationPI {
 		return &n
 	}
 	next := state
 	next[0], next[1] = byte(operation), next[0]
 	n.Left = m.Sample(depth, next, rng)
-	n.Right = m.Sample(depth, next, rng)
+	if operation != OperationCosine && operation != OperationSine {
+		n.Right = m.Sample(depth, next, rng)
+	}
 	return &n
 }
 
