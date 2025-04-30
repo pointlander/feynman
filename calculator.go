@@ -168,34 +168,37 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 		operation = Operation(0)
 	}
 	n.Operation = operation
-	value, ss := uint64(0), State{}
-	for b := range Bits {
-		bits := 0
-		for {
-			for i := range m[state].Value[ss].Value {
-				bits <<= 1
-				sample := rng.NormFloat64()*m[state].Value[ss].Value[i].Stddev + m[state].Value[ss].Value[i].Mean
-				if sample > 0 {
-					bits |= 1
+	if operation == OperationNumber {
+		value, ss := uint64(0), State{}
+		for b := range Bits {
+			bits := 0
+			for {
+				for i := range m[state].Value[ss].Value {
+					bits <<= 1
+					sample := rng.NormFloat64()*m[state].Value[ss].Value[i].Stddev + m[state].Value[ss].Value[i].Mean
+					if sample > 0 {
+						bits |= 1
+					}
+					n.ValueSample[b][i] = sample
 				}
-				n.ValueSample[b][i] = sample
+				if bits < 3 {
+					break
+				}
+				bits = 0
 			}
-			if bits < 3 {
+			ss[0], ss[1] = byte(bits), ss[0]
+			if bits == 2 {
 				break
 			}
-			bits = 0
+			value <<= 1
+			if bits == 1 {
+				value |= 1
+			}
 		}
-		ss[0], ss[1] = byte(bits), ss[0]
-		if bits == 2 {
-			break
-		}
-		value <<= 1
-		if bits == 1 {
-			value |= 1
-		}
+		n.Value = float64(value)
+	} else if operation == OperationVariable {
+		n.Variable = "x"
 	}
-	n.Value = float64(value)
-	n.Variable = "x"
 	if depth == 0 || operation == OperationVariable || operation == OperationNumber {
 		return &n
 	}
@@ -249,22 +252,24 @@ func (r Roots) Statistics(m Markov) {
 		for i := range s.OperationSum {
 			s.OperationSum[i] += n.OperationSample[i]
 		}
-		ss := State{}
-		s.Value[ss].ValueCount++
-	outer:
-		for i := range n.ValueSample {
-			bits := 0
-			for j := range s.Value[ss].ValueSum {
-				bits <<= 1
-				s.Value[ss].ValueSum[j] += n.ValueSample[i][j]
-				if n.ValueSample[i][j] > 0 {
-					bits |= 1
+		if n.Operation == OperationNumber {
+			ss := State{}
+		outer:
+			for i := range n.ValueSample {
+				s.Value[ss].ValueCount++
+				bits := 0
+				for j := range s.Value[ss].ValueSum {
+					bits <<= 1
+					s.Value[ss].ValueSum[j] += n.ValueSample[i][j]
+					if n.ValueSample[i][j] > 0 {
+						bits |= 1
+					}
 				}
+				if bits == 2 {
+					break outer
+				}
+				ss[0], ss[1] = byte(bits), ss[0]
 			}
-			if bits == 2 {
-				break outer
-			}
-			ss[0], ss[1] = byte(bits), ss[0]
 		}
 		next := state
 		next[0], next[1] = byte(n.Operation), next[0]
@@ -287,26 +292,27 @@ func (r Roots) Statistics(m Markov) {
 				s.Operation[i].Mean = s.OperationSum[i] / s.OperationCount
 			}
 		}
-		ss := State{}
-	outer:
-		for i := range n.ValueSample {
-			s := s.Value[ss]
-			if s.ValueCount > 2 {
-				bits := 0
-				for j := range s.ValueSum {
-					bits <<= 1
-					s.Value[j].Mean = s.ValueSum[j] / s.ValueCount
-					if n.ValueSample[i][j] > 0 {
-						bits |= 1
+		if n.Operation == OperationNumber {
+			ss := State{}
+		outer:
+			for i := range n.ValueSample {
+				s := s.Value[ss]
+				if s.ValueCount > 2 {
+					bits := 0
+					for j := range s.ValueSum {
+						bits <<= 1
+						s.Value[j].Mean = s.ValueSum[j] / s.ValueCount
+						if n.ValueSample[i][j] > 0 {
+							bits |= 1
+						}
 					}
+					if bits == 2 {
+						break outer
+					}
+					ss[0], ss[1] = byte(bits), ss[0]
 				}
-				if bits == 2 {
-					break outer
-				}
-				ss[0], ss[1] = byte(bits), ss[0]
 			}
 		}
-
 		next := state
 		next[0], next[1] = byte(n.Operation), next[0]
 		if n.Left != nil {
@@ -329,24 +335,26 @@ func (r Roots) Statistics(m Markov) {
 				s.OperationVariance[i] += diff * diff
 			}
 		}
-		ss := State{}
-	outer:
-		for i := range n.ValueSample {
-			s := s.Value[ss]
-			if s.ValueCount > 2 {
-				bits := 0
-				for j := range s.Value {
-					bits <<= 1
-					diff := s.Value[j].Mean - n.ValueSample[i][j]
-					s.ValueVariance[j] = diff * diff
-					if n.ValueSample[i][j] > 0 {
-						bits |= 1
+		if n.Operation == OperationNumber {
+			ss := State{}
+		outer:
+			for i := range n.ValueSample {
+				s := s.Value[ss]
+				if s.ValueCount > 2 {
+					bits := 0
+					for j := range s.Value {
+						bits <<= 1
+						diff := s.Value[j].Mean - n.ValueSample[i][j]
+						s.ValueVariance[j] = diff * diff
+						if n.ValueSample[i][j] > 0 {
+							bits |= 1
+						}
 					}
+					if bits == 2 {
+						break outer
+					}
+					ss[0], ss[1] = byte(bits), ss[0]
 				}
-				if bits == 2 {
-					break outer
-				}
-				ss[0], ss[1] = byte(bits), ss[0]
 			}
 		}
 		next := state
@@ -370,23 +378,25 @@ func (r Roots) Statistics(m Markov) {
 				s.Operation[i].Stddev = math.Sqrt(s.OperationVariance[i] / s.OperationCount)
 			}
 		}
-		ss := State{}
-	outer:
-		for i := range n.ValueSample {
-			s := s.Value[ss]
-			if s.ValueCount > 2 {
-				bits := 0
-				for j := range s.Value {
-					bits <<= 1
-					s.Value[j].Stddev = math.Sqrt(s.ValueVariance[j] / s.ValueCount)
-					if n.ValueSample[i][j] > 0 {
-						bits |= 1
+		if n.Operation == OperationNumber {
+			ss := State{}
+		outer:
+			for i := range n.ValueSample {
+				s := s.Value[ss]
+				if s.ValueCount > 2 {
+					bits := 0
+					for j := range s.Value {
+						bits <<= 1
+						s.Value[j].Stddev = math.Sqrt(s.ValueVariance[j] / s.ValueCount)
+						if n.ValueSample[i][j] > 0 {
+							bits |= 1
+						}
 					}
+					if bits == 2 {
+						break outer
+					}
+					ss[0], ss[1] = byte(bits), ss[0]
 				}
-				if bits == 2 {
-					break outer
-				}
-				ss[0], ss[1] = byte(bits), ss[0]
 			}
 		}
 		next := state
