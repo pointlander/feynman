@@ -19,7 +19,7 @@ const (
 	// Bits is the number of bits
 	Bits = 64
 	// OperationWidth is the number of operation distributions
-	OperationWidth = 4
+	OperationWidth = 5
 	// ValueWidth is the number of value distributions
 	ValueWidth = 2
 )
@@ -135,8 +135,8 @@ type Roots []Root
 // NewSource creates a new source markov model
 func NewSource() Markov {
 	source := make(Markov, Operations*Operations)
-	for x := 0; x < Operations; x++ {
-		for y := 0; y < Operations; y++ {
+	for x := 0; x < Operations+16; x++ {
+		for y := 0; y < Operations+16; y++ {
 			s := Source{}
 			for i := range s.Operation {
 				s.Operation[i].Stddev = 1
@@ -173,7 +173,7 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 				}
 				n.OperationSample[i] = sample
 			}
-			if (operation == OperationExponentiation && (OperationExponentiation != Operation(state[0]) || OperationExponentiation != Operation(state[1])) ||
+			if (operation == OperationExponentiation && (OperationExponentiation != Operation(state[0]&0xF) || OperationExponentiation != Operation(state[1]&0xF)) ||
 				operation != OperationExponentiation) && operation > 0 && operation < Operations {
 				break
 			}
@@ -190,7 +190,7 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 					}
 					n.OperationSample[i] = sample
 				}
-				if (operation == OperationExponentiation && (OperationExponentiation != Operation(state[0]) || OperationExponentiation != Operation(state[1])) ||
+				if (operation == OperationExponentiation && (OperationExponentiation != Operation(state[0]&0xF) || OperationExponentiation != Operation(state[1]&0xF)) ||
 					operation != OperationExponentiation) && operation > 0 && operation < Operations {
 					break
 				}
@@ -273,6 +273,8 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 	next[0], next[1] = byte(operation), next[0]
 	n.Left = m.Sample(depth, next, rng)
 	if !operation.IsUnary() {
+		next := state
+		next[0], next[1] = byte(operation)|0x10, next[0]
 		n.Right = m.Sample(depth, next, rng)
 	}
 	return &n
