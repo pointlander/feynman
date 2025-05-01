@@ -173,7 +173,8 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 				}
 				n.OperationSample[i] = sample
 			}
-			if (operation != Operation(state[0]) || operation != Operation(state[1])) && operation > 0 && operation < Operations {
+			if (operation == OperationExponentiation && (OperationExponentiation != Operation(state[0]) || OperationExponentiation != Operation(state[1])) ||
+				operation != OperationExponentiation) && operation > 0 && operation < Operations {
 				break
 			}
 			operation = Operation(0)
@@ -189,7 +190,8 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 					}
 					n.OperationSample[i] = sample
 				}
-				if (operation != Operation(state[0]) || operation != Operation(state[1])) && operation > 0 && operation < Operations {
+				if (operation == OperationExponentiation && (OperationExponentiation != Operation(state[0]) || OperationExponentiation != Operation(state[1])) ||
+					operation != OperationExponentiation) && operation > 0 && operation < Operations {
 					break
 				}
 				operation = Operation(0)
