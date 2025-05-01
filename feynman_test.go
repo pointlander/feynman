@@ -102,5 +102,5 @@ func TestSource(t *testing.T) {
 
 func TestNewMode(t *testing.T) {
 	expression := "4*x^3 + 2*x"
-	Integrate(expression)
+	Integrate(5, expression)
 }

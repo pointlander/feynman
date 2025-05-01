@@ -13,7 +13,7 @@ import (
 
 //go:generate peg -switch -inline calculator.peg
 
-func Integrate(expression string) {
+func Integrate(depth int, expression string) {
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -31,7 +31,7 @@ outer:
 		s := NewSource()
 		last := ""
 		for {
-			r := s.Samples(5, rng)
+			r := s.Samples(depth, rng)
 			for j, v := range r {
 				b := v.Root.Derivative()
 				for k := 0; k < 256; k++ {
