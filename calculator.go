@@ -23,9 +23,9 @@ const (
 	// ValueWidth is the number of value distributions
 	ValueWidth = 2
 	// UpperMask is the handedness mask
-	UpperMask = 0x80
+	UpperMask = 0x10
 	// LowerMask is the mask for the state
-	LowerMask = 0x7F
+	LowerMask = 0x0F
 )
 
 // Operation is a mathematical operation
