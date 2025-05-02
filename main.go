@@ -23,7 +23,7 @@ func Integrate(depth int, expression string) {
 		panic(err)
 	}
 	a := calc.Tree()
-	seed := 1000
+	seed := 1
 outer:
 	for {
 		fmt.Println("----------------------------------------------")
