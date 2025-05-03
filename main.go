@@ -30,11 +30,12 @@ outer:
 		rng := rand.New(rand.NewSource(int64(seed)))
 		s := NewSource()
 		last := ""
+		points := 1
 		for {
 			r := s.Samples(depth, rng)
 			for j, v := range r {
 				b := v.Root.Derivative()
-				for k := 0; k < 256; k++ {
+				for k := 0; k < points; k++ {
 					z := float64(k + 1)
 					aa := a.Calculate(z)
 					bb := b.Calculate(z)
@@ -56,7 +57,10 @@ outer:
 			last = r[0].Root.String()
 			fmt.Println(r[0].Fitness, r[0].Root.Simplify().String())
 			if r[0].Fitness == 0 {
-				break outer
+				if points > 2 {
+					break outer
+				}
+				points++
 			}
 			index := 0
 			for _, v := range r {
