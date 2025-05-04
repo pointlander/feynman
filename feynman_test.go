@@ -104,7 +104,7 @@ func TestNewMode(t *testing.T) {
 	expression := []string{
 		"x",
 		"2*x",
-		"x^3",
+		"4*x^3",
 		//"x^3 + x",
 		"4*x^3 + 2*x",
 		"2*x*cos(x^2)",
@@ -122,7 +122,7 @@ func TestNewMode(t *testing.T) {
 		input := calc.Tree()
 		result := Integrate(5, e)
 		result = result.Derivative()
-		for i := 0; i < 3; i++ {
+		for i := 0; i < 256; i++ {
 			z := float64(i + 1)
 			aa := input.Calculate(z)
 			bb := result.Calculate(z)
