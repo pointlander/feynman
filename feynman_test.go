@@ -103,10 +103,14 @@ func TestSource(t *testing.T) {
 func TestNewMode(t *testing.T) {
 	expression := []string{
 		"x",
+		"2*x",
+		"x^3",
+		//"x^3 + x",
 		"4*x^3 + 2*x",
 		"2*x*cos(x^2)",
 	}
 	for _, e := range expression {
+		t.Log(e)
 		calc := &Calculator[uint32]{Buffer: e}
 		err := calc.Init()
 		if err != nil {
@@ -128,5 +132,6 @@ func TestNewMode(t *testing.T) {
 				t.Fatalf("%s != %s", input, result)
 			}
 		}
+		t.Log("done")
 	}
 }
