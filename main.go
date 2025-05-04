@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -13,7 +12,7 @@ import (
 
 //go:generate peg -switch -inline calculator.peg
 
-func Integrate(depth int, expression string) {
+func Integrate(depth int, expression string) *Node {
 	calc := &Calculator[uint32]{Buffer: expression}
 	err := calc.Init()
 	if err != nil {
@@ -24,9 +23,7 @@ func Integrate(depth int, expression string) {
 	}
 	a := calc.Tree()
 	seed := 1
-outer:
 	for {
-		fmt.Println("----------------------------------------------")
 		rng := rand.New(rand.NewSource(int64(seed)))
 		s := NewSource()
 		last := ""
@@ -55,10 +52,9 @@ outer:
 				break
 			}
 			last = r[0].Root.String()
-			fmt.Println(r[0].Fitness, r[0].Root.Simplify().String())
 			if r[0].Fitness == 0 {
 				if points > 2 {
-					break outer
+					return r[0].Root
 				}
 				points++
 			}

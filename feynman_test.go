@@ -101,6 +101,32 @@ func TestSource(t *testing.T) {
 }
 
 func TestNewMode(t *testing.T) {
-	expression := "4*x^3 + 2*x"
-	Integrate(5, expression)
+	expression := []string{
+		"x",
+		"4*x^3 + 2*x",
+		"2*x*cos(x^2)",
+	}
+	for _, e := range expression {
+		calc := &Calculator[uint32]{Buffer: e}
+		err := calc.Init()
+		if err != nil {
+			panic(err)
+		}
+		if err := calc.Parse(); err != nil {
+			panic(err)
+		}
+		input := calc.Tree()
+		result := Integrate(5, e)
+		result = result.Derivative()
+		for i := 0; i < 3; i++ {
+			z := float64(i + 1)
+			aa := input.Calculate(z)
+			bb := result.Calculate(z)
+			diff := aa - bb
+			diff *= diff
+			if diff != 0 {
+				t.Fatalf("%s != %s", input, result)
+			}
+		}
+	}
 }
