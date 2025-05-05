@@ -23,7 +23,7 @@ func Integrate(depth int, expression string) *Node {
 	}
 	a := calc.Tree()
 	seed := 1
-	values := []float64{.1, -.1, 1, -1, 2, -2, 3, -3}
+	values := []float64{.01, -.01, .1, -.1, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5}
 	type Element struct {
 		Index int
 		Value float64

@@ -105,7 +105,7 @@ func TestNewMode(t *testing.T) {
 		"x",
 		"2*x",
 		"4*x^3",
-		//"x^3",
+		"x^3",
 		"4*x^3 + 2*x",
 		"2*x*cos(x^2)",
 	}
