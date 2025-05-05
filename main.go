@@ -93,9 +93,10 @@ func Integrate(depth int, expression string) *Node {
 			}
 
 			if index > 0 {
+				common := make(map[int]int)
 				min := len(d[0])
 				for k := range d {
-					count, sum := 0.0, 0.0
+					/*count, sum := 0.0, 0.0
 					for _, v := range d[k] {
 						count++
 						sum += v.Value
@@ -133,15 +134,13 @@ func Integrate(depth int, expression string) *Node {
 						if reduction > max {
 							max, cut = reduction, i
 						}
+					}*/
+					cut := len(d[k]) / 2
+					for j := 0; j < cut; j++ {
+						common[d[k][j].Index]++
 					}
 					if cut < min {
 						min = cut
-					}
-				}
-				common := make(map[int]int)
-				for k := range d {
-					for j := 0; j < len(d[k]); j++ {
-						common[d[k][j].Index]++
 					}
 				}
 				sort.Slice(r, func(i, j int) bool {
