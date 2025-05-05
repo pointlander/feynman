@@ -5,7 +5,9 @@
 package main
 
 import (
+	//"fmt"
 	"math"
+	"math/cmplx"
 	"math/rand"
 	"sort"
 )
@@ -33,49 +35,57 @@ func Integrate(depth int, expression string) *Node {
 			for j, v := range r {
 				b := v.Root.Derivative()
 				for k := 0; k < points; k++ {
-					z := float64(k + 1)
-					aa := a.Calculate(z)
-					bb := b.Calculate(z)
+					//z := float64(k + 1)
+					z := complex(rng.Float64(), rng.Float64())
+					aa := a.CalculateComplex(z)
+					//fmt.Println(b.String())
+					bb := b.CalculateComplex(z)
 					diff := aa - bb
-					if math.IsInf(diff, 0) || math.IsNaN(diff) {
-						r[j].Fitness = math.Inf(1)
+					//fmt.Println(aa, bb, diff)
+					if cmplx.IsInf(diff) || cmplx.IsNaN(diff) {
+						r[j].Fitness = cmplx.Inf()
 					}
-					if !(math.IsInf(r[j].Fitness, 0) || math.IsNaN(r[j].Fitness)) {
-						r[j].Fitness += diff * diff
+					if !(cmplx.IsInf(r[j].Fitness) || cmplx.IsNaN(r[j].Fitness)) {
+						r[j].Fitness += diff
 					}
 				}
 			}
 			sort.Slice(r, func(i, j int) bool {
-				return r[i].Fitness < r[j].Fitness
+				if cmplx.Abs(r[i].Fitness) < cmplx.Abs(r[j].Fitness) {
+					return true
+				} else if cmplx.Abs(r[i].Fitness) == cmplx.Abs(r[j].Fitness) {
+					return math.Abs(cmplx.Phase(r[i].Fitness)) < math.Abs(cmplx.Phase(r[j].Fitness))
+				}
+				return false
 			})
 			if last == r[0].Root.String() {
 				break
 			}
 			last = r[0].Root.String()
 			if r[0].Fitness == 0 {
-				if points > 2 {
+				if points > 3 {
 					return r[0].Root
 				}
 				points++
 			}
 			index := 0
 			for _, v := range r {
-				if math.IsInf(v.Fitness, 0) {
+				if cmplx.IsInf(v.Fitness) {
 					break
 				}
 				index++
 			}
 			r = r[:index]
-			if index > 0 {
+			/*if index > 0 {
 				count, sum := 0.0, 0.0
 				for _, v := range r {
 					count++
-					sum += v.Fitness
+					sum += cmplx.Abs(v.Fitness)
 				}
 				average := sum / count
 				variance := 0.0
 				for _, v := range r {
-					diff := average - v.Fitness
+					diff := average - cmplx.Abs(v.Fitness)
 					variance += diff * diff
 				}
 				variance /= float64(len(r))
@@ -84,20 +94,20 @@ func Integrate(depth int, expression string) *Node {
 					avga, avgb := 0.0, 0.0
 					vara, varb := 0.0, 0.0
 					for j := 0; j < i; j++ {
-						avga += r[j].Fitness
+						avga += cmplx.Abs(r[j].Fitness)
 					}
 					avga /= float64(i)
 					for j := 0; j < i; j++ {
-						diff := r[j].Fitness - avga
+						diff := cmplx.Abs(r[j].Fitness) - avga
 						vara += diff * diff
 					}
 					vara /= float64(i)
 					for j := i; j < len(r); j++ {
-						avgb += r[j].Fitness
+						avgb += cmplx.Abs(r[j].Fitness)
 					}
 					avgb /= float64(len(r) - i)
 					for j := i; j < len(r); j++ {
-						diff := r[j].Fitness - avgb
+						diff := cmplx.Abs(r[j].Fitness) - avgb
 						varb += diff * diff
 					}
 					varb /= float64(len(r) - i)
@@ -107,7 +117,7 @@ func Integrate(depth int, expression string) *Node {
 					}
 				}
 				r = r[:cut]
-			}
+			}*/
 			r.Statistics(s)
 		}
 		seed++
