@@ -6,6 +6,7 @@ package main
 
 import (
 	"math"
+	"math/cmplx"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -121,7 +122,7 @@ type Node struct {
 	OperationSample [OperationWidth]float64
 	Operation       Operation
 	ValueSample     [Bits][ValueWidth]float64
-	Value           float64
+	Value           complex128
 	Variable        string
 	Left            *Node
 	Right           *Node
@@ -130,7 +131,7 @@ type Node struct {
 // Root is the root node
 type Root struct {
 	Root    *Node
-	Fitness float64
+	Fitness complex128
 }
 
 // Roots is a set of roots
@@ -269,7 +270,7 @@ func (m Markov) Sample(depth int, state State, rng *rand.Rand) *Node {
 				value |= 1
 			}
 		}
-		n.Value = float64(value)
+		n.Value = complex(float64(value), 0)
 	} else if operation == OperationVariable {
 		n.Variable = "x"
 	} else if operation == OperationPI {
@@ -657,7 +658,7 @@ func (c *Calculator[U]) Rulevalue(node *node[U]) *Node {
 			if err != nil {
 				panic(err)
 			}
-			a.Value = value
+			a.Value = complex(float64(value), 0)
 			return a
 		case rulevariable:
 			a := &Node{}
@@ -1005,7 +1006,7 @@ func (n *Node) Simplify() *Node {
 			} else if isNumeric(right.Operation) && right.Equals(0) {
 				a := &Node{
 					Operation: OperationNumber,
-					Value:     math.Inf(1),
+					Value:     complex(math.Inf(1), 0),
 				}
 				return a
 			} else if isNumeric(right.Operation) && right.Equals(1) {
@@ -1161,11 +1162,11 @@ func (n *Node) Calculate(x float64) float64 {
 	var a float64
 	switch n.Operation {
 	case OperationNumber:
-		a = n.Value
+		a = real(n.Value)
 	case OperationVariable:
 		a = x
 	case OperationPI:
-		a = n.Value
+		a = real(n.Value)
 	case OperationNegate:
 		a = -n.Left.Calculate(x)
 	case OperationAdd:
@@ -1186,9 +1187,38 @@ func (n *Node) Calculate(x float64) float64 {
 	return a
 }
 
+func (n *Node) CalculateComplex(x complex128) complex128 {
+	var a complex128
+	switch n.Operation {
+	case OperationNumber:
+		a = n.Value
+	case OperationVariable:
+		a = x
+	case OperationPI:
+		a = n.Value
+	case OperationNegate:
+		a = -n.Left.CalculateComplex(x)
+	case OperationAdd:
+		a = n.Left.CalculateComplex(x) + n.Right.CalculateComplex(x)
+	case OperationSubtract:
+		a = n.Left.CalculateComplex(x) - n.Right.CalculateComplex(x)
+	case OperationMultiply:
+		a = n.Left.CalculateComplex(x) * n.Right.CalculateComplex(x)
+	case OperationDivide:
+		a = n.Left.CalculateComplex(x) / n.Right.CalculateComplex(x)
+	case OperationExponentiation:
+		a = complex(math.Pow(cmplx.Abs(n.Left.CalculateComplex(x)), cmplx.Abs(n.Right.CalculateComplex(x))), 0)
+	case OperationCosine:
+		a = cmplx.Cos(n.Left.CalculateComplex(x))
+	case OperationSine:
+		a = cmplx.Sin(n.Left.CalculateComplex(x))
+	}
+	return a
+}
+
 // Equals test if value is equal to x
 func (n *Node) Equals(x int64) bool {
-	return n.Value == float64(x)
+	return n.Value == complex(float64(x), 0)
 }
 
 // String returns the string form of the equation
@@ -1218,12 +1248,12 @@ func (n *Node) String() string {
 		case OperationVariable:
 			return n.Variable
 		case OperationImaginary:
-			return strconv.FormatFloat(n.Value, 'f', -1, 64) + "i"
+			return strconv.FormatFloat(real(n.Value), 'f', -1, 64) + "i"
 		case OperationNumber:
-			return strconv.FormatFloat(n.Value, 'f', -1, 64)
+			return strconv.FormatFloat(real(n.Value), 'f', -1, 64)
 		case OperationNotation:
 			if n.Left.Operation == OperationImaginary {
-				return strconv.FormatFloat(n.Left.Value, 'f', -1, 64) + "e" + process(n.Right) + "i"
+				return strconv.FormatFloat(real(n.Left.Value), 'f', -1, 64) + "e" + process(n.Right) + "i"
 			}
 			return process(n.Left) + "e" + process(n.Right)
 		case OperationNaturalExponentiation:
