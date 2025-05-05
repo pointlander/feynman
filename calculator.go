@@ -131,6 +131,7 @@ type Node struct {
 type Root struct {
 	Root    *Node
 	Fitness float64
+	Index   int
 }
 
 // Roots is a set of roots
@@ -295,7 +296,8 @@ func (m Markov) Samples(depth int, rng *rand.Rand) Roots {
 	root := Roots{}
 	for i := 0; i < 1024; i++ {
 		root = append(root, Root{
-			Root: m.Sample(depth, State{}, rng),
+			Root:  m.Sample(depth, State{}, rng),
+			Index: i,
 		})
 	}
 	return root

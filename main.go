@@ -47,12 +47,12 @@ func Integrate(depth int, expression string) *Node {
 					if math.IsInf(diff, 0) || math.IsNaN(diff) {
 						r[j].Fitness = math.Inf(1)
 						d[k] = append(d[k], Element{
-							Index: j,
+							Index: v.Index,
 							Value: math.Inf(1),
 						})
 					} else {
 						d[k] = append(d[k], Element{
-							Index: j,
+							Index: v.Index,
 							Value: math.Abs(diff),
 						})
 					}
@@ -145,7 +145,7 @@ func Integrate(depth int, expression string) *Node {
 					}
 				}
 				sort.Slice(r, func(i, j int) bool {
-					return common[i] < common[j]
+					return common[r[i].Index] > common[r[j].Index]
 				})
 				r = r[:min]
 			}
