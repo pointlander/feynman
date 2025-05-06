@@ -94,59 +94,16 @@ func Integrate(depth int, expression string) *Node {
 
 			if index > 0 {
 				common := make(map[int]int)
-				min := len(d[0])
+				index /= 2
 				for k := range d {
-					/*count, sum := 0.0, 0.0
-					for _, v := range d[k] {
-						count++
-						sum += v.Value
-					}
-					average := sum / count
-					variance := 0.0
-					for _, v := range d[k] {
-						diff := average - v.Value
-						variance += diff * diff
-					}
-					variance /= float64(len(d[k]))
-					max, cut := 0.0, len(d[k])-1
-					for i := 1; i < len(d[k])-1; i++ {
-						avga, avgb := 0.0, 0.0
-						vara, varb := 0.0, 0.0
-						for j := 0; j < i; j++ {
-							avga += d[k][j].Value
-						}
-						avga /= float64(i)
-						for j := 0; j < i; j++ {
-							diff := d[k][j].Value - avga
-							vara += diff * diff
-						}
-						vara /= float64(i)
-						for j := i; j < len(d[k]); j++ {
-							avgb += d[k][j].Value
-						}
-						avgb /= float64(len(d[k]) - i)
-						for j := i; j < len(d[k]); j++ {
-							diff := d[k][j].Value - avgb
-							varb += diff * diff
-						}
-						varb /= float64(len(d[k]) - i)
-						reduction := variance - (vara + varb)
-						if reduction > max {
-							max, cut = reduction, i
-						}
-					}*/
-					cut := len(d[k]) / 2
-					for j := 0; j < cut; j++ {
+					for j := range index {
 						common[d[k][j].Index]++
-					}
-					if cut < min {
-						min = cut
 					}
 				}
 				sort.Slice(r, func(i, j int) bool {
 					return common[r[i].Index] > common[r[j].Index]
 				})
-				r = r[:min]
+				r = r[:index]
 			}
 			r.Statistics(s)
 		}
