@@ -19,7 +19,8 @@ func TestCalculate(t *testing.T) {
 	if err := calc.Parse(); err != nil {
 		t.Fatal(err)
 	}
-	result := calc.Tree().Calculate(1.0)
+	x := map[string]float64{"x": 1.0}
+	result := calc.Tree().Calculate(x)
 	if result-2 != 0 {
 		t.Fatal("got incorrect result", result)
 	}
@@ -35,7 +36,8 @@ func TestSin(t *testing.T) {
 	if err := calc.Parse(); err != nil {
 		t.Fatal(err)
 	}
-	result := calc.Tree().Calculate(1.0)
+	x := map[string]float64{"x": 1.0}
+	result := calc.Tree().Calculate(x)
 	if result > 1e-10 {
 		t.Log(calc.Tree().String())
 		t.Fatal("got incorrect result", result)
@@ -52,7 +54,8 @@ func TestCos(t *testing.T) {
 	if err := calc.Parse(); err != nil {
 		t.Fatal(err)
 	}
-	result := calc.Tree().Calculate(1.0)
+	x := map[string]float64{"x": 1.0}
+	result := calc.Tree().Calculate(x)
 	if result != -1 {
 		t.Log(calc.Tree().String())
 		t.Fatal("got incorrect result", result)
@@ -94,8 +97,9 @@ func TestSource(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	s := NewSource()
 	r := s.Samples(5, rng)
+	x := map[string]float64{"x": 1.0}
 	for _, v := range r {
-		v.Root.Calculate(1)
+		v.Root.Calculate(x)
 	}
 	r.Statistics(s)
 }
@@ -123,7 +127,7 @@ func TestNewMode(t *testing.T) {
 		result := Integrate(5, e)
 		result = result.Derivative()
 		for i := 0; i < 256; i++ {
-			z := float64(i + 1)
+			z := map[string]float64{"x": float64(i + 1)}
 			aa := input.Calculate(z)
 			bb := result.Calculate(z)
 			diff := aa - bb

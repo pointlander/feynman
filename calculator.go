@@ -1159,13 +1159,13 @@ func (n *Node) Simplify() *Node {
 	return process(n)
 }
 
-func (n *Node) Calculate(x float64) float64 {
+func (n *Node) Calculate(x map[string]float64) float64 {
 	var a float64
 	switch n.Operation {
 	case OperationNumber:
 		a = n.Value
 	case OperationVariable:
-		a = x
+		a = x[n.Variable]
 	case OperationPI:
 		a = n.Value
 	case OperationNegate:
