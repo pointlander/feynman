@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -41,7 +42,7 @@ func Integrate(depth int, expression string) *Node {
 			r := s.Samples(depth, rng)
 			d := make([][]Element, len(values))
 			for j, v := range r {
-				b := v.Root.Derivative()
+				b := v.Root.Derivative(map[string]bool{"x": true})
 				for k := range values {
 					z := map[string]float64{"x": values[k]}
 					aa := cache[k]
@@ -115,5 +116,15 @@ func Integrate(depth int, expression string) *Node {
 }
 
 func main() {
-
+	calc := &Calculator[uint32]{Buffer: "(x3*x^(x1/x2))/x4"}
+	err := calc.Init()
+	if err != nil {
+		panic(err)
+	}
+	if err := calc.Parse(); err != nil {
+		panic(err)
+	}
+	a := calc.Tree()
+	b := a.Derivative(map[string]bool{"x": true})
+	fmt.Println(b.Simplify())
 }

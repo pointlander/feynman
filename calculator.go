@@ -694,7 +694,7 @@ func (c *Calculator[U]) Rulesub(node *node[U]) *Node {
 
 // Derivative takes the derivative of the equation
 // https://www.cs.utexas.edu/users/novak/asg-symdif.html#:~:text=Introduction,numeric%20calculations%20based%20on%20formulas.
-func (n *Node) Derivative() *Node {
+func (n *Node) Derivative(x map[string]bool) *Node {
 	var process func(n *Node) *Node
 	process = func(n *Node) *Node {
 		if n == nil {
@@ -799,18 +799,21 @@ func (n *Node) Derivative() *Node {
 			}
 			return a
 		case OperationVariable:
-			a := &Node{
-				Operation: OperationNumber,
-				Value:     1.0,
+			if x[n.Variable] {
+				a := &Node{
+					Operation: OperationNumber,
+					Value:     1.0,
+				}
+				return a
 			}
-			return a
-		case OperationImaginary:
+			fallthrough
+		case OperationNumber:
 			a := &Node{
 				Operation: OperationNumber,
 				Value:     0.0,
 			}
 			return a
-		case OperationNumber:
+		case OperationImaginary:
 			a := &Node{
 				Operation: OperationNumber,
 				Value:     0.0,

@@ -89,7 +89,7 @@ func TestDerivative(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := calc.Tree()
-	da := a.Derivative()
+	da := a.Derivative(map[string]bool{"x": true})
 	t.Log(da.String())
 }
 
@@ -125,7 +125,7 @@ func TestNewMode(t *testing.T) {
 		}
 		input := calc.Tree()
 		result := Integrate(5, e)
-		result = result.Derivative()
+		result = result.Derivative(map[string]bool{"x": true})
 		for i := 0; i < 256; i++ {
 			z := map[string]float64{"x": float64(i + 1)}
 			aa := input.Calculate(z)
