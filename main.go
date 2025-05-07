@@ -41,13 +41,11 @@ func Integrate(depth int, expression string) *Node {
 			d := make([][]Element, len(values))
 			for j, v := range r {
 				b := v.Root.Derivative()
-				dd := make([]float64, 0, 8)
 				for k := range values {
 					z := values[k]
 					aa := cache[k]
 					bb := b.Calculate(z)
 					diff := aa - bb
-					dd = append(dd, diff*diff)
 					if math.IsInf(diff, 0) || math.IsNaN(diff) {
 						r[j].Fitness = math.Inf(1)
 						d[k] = append(d[k], Element{
