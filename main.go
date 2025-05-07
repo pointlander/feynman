@@ -24,6 +24,10 @@ func Integrate(depth int, expression string) *Node {
 	a := calc.Tree()
 	seed := 1
 	values := []float64{.01, -.01, .1, -.1, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5}
+	cache := make([]float64, len(values))
+	for i, z := range values {
+		cache[i] = a.Calculate(z)
+	}
 	type Element struct {
 		Index int
 		Value float64
@@ -40,7 +44,7 @@ func Integrate(depth int, expression string) *Node {
 				dd := make([]float64, 0, 8)
 				for k := range values {
 					z := values[k]
-					aa := a.Calculate(z)
+					aa := cache[k]
 					bb := b.Calculate(z)
 					diff := aa - bb
 					dd = append(dd, diff*diff)
