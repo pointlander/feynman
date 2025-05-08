@@ -126,5 +126,39 @@ func main() {
 	}
 	a := calc.Tree()
 	b := a.Derivative(map[string]bool{"x": true})
-	fmt.Println(b.Simplify())
+	expression := "(" + b.Simplify().String() + "- x5)^2"
+	fmt.Println(expression)
+	fmt.Println()
+	{
+		calc := &Calculator[uint32]{Buffer: expression}
+		err := calc.Init()
+		if err != nil {
+			panic(err)
+		}
+		if err := calc.Parse(); err != nil {
+			panic(err)
+		}
+		c := calc.Tree()
+		partials := [4]*Node{}
+		partials[0] = c.Derivative(map[string]bool{"x1": true}).Simplify()
+		partials[1] = c.Derivative(map[string]bool{"x2": true}).Simplify()
+		partials[2] = c.Derivative(map[string]bool{"x3": true}).Simplify()
+		partials[3] = c.Derivative(map[string]bool{"x4": true}).Simplify()
+		for _, v := range partials {
+			fmt.Println(v)
+		}
+
+		rng := rand.New(rand.NewSource(1))
+		values := map[string]float64{
+			"x":  3.0,
+			"x1": rng.Float64(),
+			"x2": rng.Float64(),
+			"x3": rng.Float64(),
+			"x4": rng.Float64(),
+			"x5": 9.0,
+		}
+		for _, v := range partials {
+			fmt.Println(v.Calculate(values))
+		}
+	}
 }

@@ -664,7 +664,7 @@ func (c *Calculator[U]) Rulevalue(node *node[U]) *Node {
 		case rulevariable:
 			a := &Node{}
 			a.Operation = OperationVariable
-			a.Variable = string(c.buffer[node.begin:node.end])
+			a.Variable = strings.TrimSpace(string(c.buffer[node.begin:node.end]))
 			return a
 		case rulepi:
 			a := &Node{}

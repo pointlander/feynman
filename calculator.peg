@@ -26,7 +26,7 @@ value <- number
        / variable
        / sub
 number <-[0-9]+ sp
-variable <- [a-z]+ [0-9]*
+variable <- [a-z]+ [0-9]* sp
 sub <- open e1 close
 add <- '+' sp
 minus <- '-' sp
