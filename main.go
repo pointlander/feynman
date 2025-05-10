@@ -157,8 +157,25 @@ func main() {
 			"x4": rng.Float64(),
 			"x5": 9.0,
 		}
-		for _, v := range partials {
-			fmt.Println(v.Calculate(values))
+		for i := 0; i < 33; i++ {
+			dx := make([]float64, 0, 8)
+			for _, v := range partials {
+				dx = append(dx, v.Calculate(values))
+			}
+			sum := 0.0
+			for _, v := range dx {
+				sum += v * v
+			}
+			factor, length := 1.0, math.Sqrt(sum)
+			fmt.Println(length)
+			if length > 1 {
+				factor /= length
+			}
+			values["x1"] = values["x1"] + .03*factor*dx[0]
+			values["x2"] = values["x2"] + .03*factor*dx[1]
+			values["x3"] = values["x3"] + .03*factor*dx[2]
+			values["x4"] = values["x4"] + .03*factor*dx[3]
 		}
+		fmt.Println(values["x1"]/values["x2"], values["x3"]/values["x4"])
 	}
 }
