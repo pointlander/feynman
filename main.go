@@ -157,7 +157,10 @@ func main() {
 			"x4": rng.Float64(),
 			"x5": 9.0,
 		}
-		for i := 0; i < 33; i++ {
+		for i := 0; i < 1024; i++ {
+			value := float64(rng.Intn(8) + 1)
+			values["x"] = value
+			values["x5"] = value * value
 			dx := make([]float64, 0, 8)
 			for _, v := range partials {
 				dx = append(dx, v.Calculate(values))
@@ -171,10 +174,10 @@ func main() {
 			if length > 1 {
 				factor /= length
 			}
-			values["x1"] = values["x1"] + .03*factor*dx[0]
-			values["x2"] = values["x2"] + .03*factor*dx[1]
-			values["x3"] = values["x3"] + .03*factor*dx[2]
-			values["x4"] = values["x4"] + .03*factor*dx[3]
+			values["x1"] = values["x1"] + .01*factor*dx[0]
+			values["x2"] = values["x2"] + .01*factor*dx[1]
+			values["x3"] = values["x3"] + .01*factor*dx[2]
+			values["x4"] = values["x4"] + .01*factor*dx[3]
 		}
 		fmt.Println(values["x1"]/values["x2"], values["x3"]/values["x4"])
 	}
