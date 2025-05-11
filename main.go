@@ -159,7 +159,7 @@ func main() {
 		}
 		data := []float64{.001, .01, .1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100}
 		for i := 0; i < 8*1024; i++ {
-			dx := make([]float64, len(data))
+			dx := make([]float64, len(partials))
 			for _, datum := range data {
 				value := float64(datum)
 				values["x"] = value
